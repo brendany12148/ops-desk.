@@ -256,12 +256,24 @@
   input[type=file]{ font-family:'IBM Plex Sans', sans-serif; font-size:12.5px; }
 
   /* general operations */
-  .staff-name-input{ font-family:'Newsreader', serif; font-weight:600; font-size:19px; border:none; background:transparent; padding:2px 0; width:auto; flex:1; }
+  .staff-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(170px,1fr)); gap:12px; align-items:start; margin-bottom:18px; }
+  .staff-card{ background:var(--card); border:1px solid var(--line); border-top:3px solid var(--teal); padding:12px 14px; animation: fadeInUp .28s ease; transition: transform .15s ease, box-shadow .15s ease; }
+  .staff-card:hover{ transform: translateY(-2px); box-shadow: 0 4px 14px rgba(23,23,15,0.08); }
+  .staff-card-head{ display:flex; align-items:center; gap:6px; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid var(--line); }
+  .staff-name-input{ font-family:'Newsreader', serif; font-weight:600; font-size:14.5px; border:none; background:transparent; padding:2px 0; width:auto; flex:1; min-width:0; }
   .staff-name-input:focus{ outline:none; border-bottom:1px solid var(--teal); }
-  .bullet-row{ display:flex; align-items:flex-start; gap:8px; padding:8px 20px; border-bottom:1px solid var(--line); }
+  .staff-card .delStaffBtn{ flex-shrink:0; padding:2px 7px; font-size:12px; line-height:1.4; }
+  .staff-card .bulletList{ min-height:6px; }
+  .staff-card .loading-row{ padding:8px 0; font-size:11px; text-align:left; }
+  .bullet-row{ display:flex; align-items:flex-start; gap:6px; padding:5px 0; border-bottom:1px solid var(--line); }
   .bullet-row:last-child{ border-bottom:none; }
-  .bullet-row .bullet-dot{ color:var(--teal); font-size:14px; line-height:1.5; flex-shrink:0; }
-  .bullet-row .bullet-text{ flex:1; font-size:13.5px; line-height:1.5; white-space:pre-wrap; }
+  .bullet-row .bullet-dot{ color:var(--teal); font-size:13px; line-height:1.5; flex-shrink:0; }
+  .bullet-row .bullet-text{ flex:1; font-size:12px; line-height:1.45; white-space:pre-wrap; word-break:break-word; }
+  .bullet-row button{ flex-shrink:0; padding:1px 6px; font-size:11px; line-height:1.4; opacity:0; transition:opacity .12s ease; }
+  .bullet-row:hover button{ opacity:1; }
+  .staff-card .add-bullet-row{ display:flex; gap:6px; margin-top:8px; }
+  .staff-card .add-bullet-row input{ flex:1; font-size:11.5px; padding:6px 7px; min-width:0; }
+  .staff-card .add-bullet-row button{ flex-shrink:0; padding:6px 9px; font-size:11px; }
 </style>
 </head>
 <body>
@@ -1285,20 +1297,21 @@ function buildStaffSection(){
     wrap.appendChild(el('div','panel empty-state','No team members yet — click "+ Add team member" to start.'));
     return wrap;
   }
-  state.staffMembers.forEach(s=> wrap.appendChild(buildStaffCard(s)));
+  const grid = document.createElement('div'); grid.className='staff-grid';
+  state.staffMembers.forEach(s=> grid.appendChild(buildStaffCard(s)));
+  wrap.appendChild(grid);
   return wrap;
 }
 
 function buildStaffCard(s){
-  const card = document.createElement('div'); card.className='panel';
+  const card = document.createElement('div'); card.className='staff-card';
   card.innerHTML = `
-    <div class="profile-head">
-      <input type="text" class="staff-name-input" value="${esc(s.name)}" placeholder="Team member name">
-      <button class="danger small delStaffBtn">Remove</button>
+    <div class="staff-card-head">
+      <input type="text" class="staff-name-input" value="${esc(s.name)}" placeholder="Name">
+      <button class="danger small delStaffBtn" title="Remove team member">×</button>
     </div>
     <div class="bulletList"></div>
-    <div class="field"><input type="text" class="newBulletInput" placeholder="Add a note or task for this person..."></div>
-    <div class="btn-row"><button class="small addBulletBtn">Add</button></div>
+    <div class="add-bullet-row"><input type="text" class="newBulletInput" placeholder="Add item..."><button class="small addBulletBtn">+</button></div>
   `;
   const nameInput = card.querySelector('.staff-name-input');
   nameInput.onchange = ()=>{ s.name = nameInput.value.trim(); storageSet('staffMembers', state.staffMembers); };
