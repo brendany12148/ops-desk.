@@ -348,8 +348,6 @@ let state = {
   clientUpdates: {},
   graphicsGallery: {},
   dailyResponsibilities: [],
-  todayCompletions: [],
-  todayKey: '',
   roster: [],
   productions: [],
   activeProductionId: null,
@@ -392,20 +390,18 @@ async function loadAll(){
   state.staffMembers = (await storageGet('staffMembers')) || [];
   state.opsNotes = (await storageGet('opsNotes')) || [];
   state.dailyResponsibilities = (await storageGet('dailyResponsibilities')) || [];
-  state.todayKey = todayKeyStr();
-  state.todayCompletions = (await storageGet('completions:'+state.todayKey)) || [];
   state.myEvents = (await storageGet('myEvents')) || [];
   state.calendarSelectedDate = todayKeyStr();
   if(state.clients.length) state.activeClientId = state.clients[0].id;
 }
 function todayKeyStr(){ return new Date().toISOString().slice(0,10); }
 
-function spawnConfetti(anchorEl, size){
+function spawnConfetti(anchorEl, size, colors){
   size = size || 'small';
   const rect = anchorEl.getBoundingClientRect();
   const originX = rect.left + rect.width/2;
   const originY = rect.top + rect.height/2;
-  const colors = ['#17170f','#2f5d50','#c07f24','#eeead9','#7a7663'];
+  colors = colors || ['#17170f','#2f5d50','#c07f24','#eeead9','#7a7663'];
   const count = size==='big' ? 50 : 10;
   const spreadBase = size==='big' ? 110 : 30;
   const spreadRange = size==='big' ? 140 : 25;
@@ -490,7 +486,7 @@ function renderHome(main){
 
   const checklistPanel = document.createElement('div'); checklistPanel.className='panel';
   checklistPanel.innerHTML = `
-    <div class="profile-head"><div><h2>Today's checklist</h2><div class="sub">Recurring daily responsibilities — resets each day</div></div><button id="manageRespBtn" class="ghost small">Add Task</button></div>
+    <div class="profile-head"><div><h2>Checklist</h2><div class="sub">Ongoing list — check items off as you go</div></div><button id="manageRespBtn" class="ghost small">Add Task</button></div>
     <div id="dailyChecklist"></div>
   `;
   main.appendChild(checklistPanel);
@@ -576,23 +572,23 @@ function renderHome(main){
   main.appendChild(stats);
 }
 
+const CHECKLIST_CONFETTI = ['#2f9e44','#40c463','#ffffff'];
 function renderDailyChecklist(container){
   if(!state.dailyResponsibilities.length){
-    container.innerHTML = `<div class="loading-row" style="font-style:italic;">No recurring responsibilities set up yet — click "Manage list" to add some.</div>`;
+    container.innerHTML = `<div class="loading-row" style="font-style:italic;">Nothing on the checklist yet — click "Add Task" to add some.</div>`;
     return;
   }
   container.innerHTML = '';
   state.dailyResponsibilities.forEach(r=>{
-    const done = state.todayCompletions.includes(r.id);
+    const done = !!r.done;
     const row = document.createElement('div'); row.className='task-row'+(done?' done':'');
     row.innerHTML = `<input type="checkbox" ${done?'checked':''}><span class="task-text">${esc(r.text)}</span>`;
     row.querySelector('input').onchange = (e)=>{
-      if(e.target.checked) state.todayCompletions.push(r.id);
-      else state.todayCompletions = state.todayCompletions.filter(id=>id!==r.id);
-      storageSet('completions:'+state.todayKey, state.todayCompletions);
+      r.done = e.target.checked;
+      storageSet('dailyResponsibilities', state.dailyResponsibilities);
       row.classList.add('just-checked');
-      const nowComplete = state.dailyResponsibilities.length > 0 && state.todayCompletions.length === state.dailyResponsibilities.length;
-      if(e.target.checked){ spawnConfetti(row, nowComplete ? 'big' : 'small'); }
+      const nowComplete = state.dailyResponsibilities.length > 0 && state.dailyResponsibilities.every(x=>x.done);
+      if(e.target.checked){ spawnConfetti(row, nowComplete ? 'big' : 'small', CHECKLIST_CONFETTI); }
       setTimeout(render, nowComplete ? 260 : 160);
     };
     container.appendChild(row);
@@ -602,7 +598,7 @@ function renderDailyChecklist(container){
 function openResponsibilityManager(panel){
   const formPanel = document.createElement('div'); formPanel.className='panel'; formPanel.style.marginTop='10px';
   formPanel.innerHTML = `
-    <div class="profile-head"><h2 style="font-size:16px;">Manage recurring responsibilities</h2></div>
+    <div class="profile-head"><h2 style="font-size:16px;">Manage checklist</h2></div>
     <div id="respManageList"></div>
     <div class="field"><input type="text" id="newRespText" placeholder="e.g. Post to Instagram, check client inboxes"></div>
     <div class="btn-row"><button id="addRespBtn" class="small">Add</button><button class="ghost small" id="closeRespBtn">Done</button></div>
@@ -626,7 +622,7 @@ function openResponsibilityManager(panel){
   formPanel.querySelector('#addRespBtn').onclick = ()=>{
     const txt = formPanel.querySelector('#newRespText').value.trim();
     if(!txt) return;
-    state.dailyResponsibilities.push({id:uid('r'), text:txt});
+    state.dailyResponsibilities.push({id:uid('r'), text:txt, done:false});
     storageSet('dailyResponsibilities', state.dailyResponsibilities);
     formPanel.querySelector('#newRespText').value='';
     renderList();
