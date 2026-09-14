@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ops Desk</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --ink:#17170f; --paper:#eeead9; --paper-dim:#e2ded0;
+    --teal:#2f5d50; --teal-dim:#c7d8d0; --amber:#c07f24;
+    --line:#c9c3ac; --muted:#7a7663; --card:#f7f5ea; --danger:#a3402f;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--paper); color:var(--ink); font-family:'IBM Plex Sans', sans-serif; min-height:100vh;}
+
+  .app{ display:flex; min-height:100vh; }
+
+  /* left rail */
+  .rail{
+    width:190px; flex-shrink:0;
+    border-right:2px solid var(--ink);
+    padding:24px 0;
+    display:flex; flex-direction:column;
+  }
+  .rail .brand{
+    font-family:'Newsreader', serif; font-weight:600; font-size:20px;
+    padding:0 20px 20px; border-bottom:1px solid var(--line); margin-bottom:10px;
+  }
+  .rail .nav-item{
+    font-family:'IBM Plex Mono', monospace; font-size:12px;
+    padding:11px 20px; cursor:pointer; color:var(--muted);
+    display:flex; gap:10px; align-items:baseline;
+    border-left:3px solid transparent;
+  }
+  .rail .nav-item .no{ color:var(--muted); }
+  .rail .nav-item:hover{ background:var(--paper-dim); color:var(--ink); }
+  .rail .nav-item.active{ background:var(--card); color:var(--ink); border-left-color:var(--teal); font-weight:600; }
+  .rail .nav-item.active .no{ color:var(--teal); }
+
+  .main{ flex:1; padding:28px 32px 80px; max-width:1080px; }
+
+  .section-head{
+    display:flex; align-items:baseline; justify-content:space-between;
+    border-bottom:2px solid var(--ink); padding-bottom:12px; margin-bottom:24px; flex-wrap:wrap; gap:10px;
+  }
+  .section-head h1{ font-family:'Newsreader', serif; font-weight:600; font-size:26px; margin:0; }
+  .section-head .sub{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--muted); letter-spacing:.06em; }
+
+  .panel{ background:var(--card); border:1px solid var(--line); margin-bottom:18px; }
+  .empty-state{ padding:50px 24px; text-align:center; color:var(--muted); }
+  .empty-state .glyph{ font-family:'Newsreader', serif; font-size:36px; color:var(--teal); margin-bottom:8px; }
+  .empty-state button{ margin-top:14px; }
+
+  .profile-head{ display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid var(--line); }
+  .profile-head h2{ font-family:'Newsreader', serif; font-size:20px; font-weight:600; margin:0; }
+  .profile-head .sub{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+
+  .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:760px){ .grid-2{ grid-template-columns:1fr; } }
+
+  .field{ padding:14px 20px; }
+  .field label{ display:block; font-family:'IBM Plex Mono', monospace; font-size:10px; text-transform:uppercase; letter-spacing:.07em; color:var(--teal); margin-bottom:6px; }
+  .field .hint{ font-size:11.5px; color:var(--muted); margin-top:5px; line-height:1.4; }
+  input[type=text], input[type=date], input[type=password], textarea, select{
+    width:100%; font-family:'IBM Plex Sans', sans-serif; font-size:13.5px; padding:8px 10px;
+    border:1px solid var(--line); background:#fff; color:var(--ink); resize:vertical;
+  }
+  input:focus, textarea:focus, select:focus{ outline:2px solid var(--teal); outline-offset:-1px; }
+  textarea{ min-height:60px; line-height:1.45; }
+
+  .platform-check{ display:flex; flex-wrap:wrap; gap:8px; }
+  .platform-check label{
+    display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--ink);
+    border:1px solid var(--line); padding:6px 10px; cursor:pointer; background:#fff;
+  }
+  .platform-check input{ accent-color:var(--teal); }
+  .platform-check label.checked{ background:var(--teal-dim); border-color:var(--teal); }
+
+  button{
+    font-family:'IBM Plex Sans', sans-serif; font-size:13px; font-weight:600;
+    padding:9px 16px; border:1px solid var(--ink); background:var(--ink); color:var(--paper); cursor:pointer;
+  }
+  button:hover{ background:#000; }
+  button.ghost{ background:transparent; color:var(--ink); }
+  button.ghost:hover{ background:var(--paper-dim); }
+  button.danger{ border-color:var(--danger); color:var(--danger); background:transparent; }
+  button.danger:hover{ background:var(--danger); color:#fff; }
+  button.small{ font-size:11.5px; padding:6px 10px; }
+  button:disabled{ opacity:.5; cursor:not-allowed; }
+
+  .btn-row{ display:flex; gap:10px; padding:14px 20px 20px; flex-wrap:wrap; }
+
+  .client-pills{ display:flex; gap:2px; flex-wrap:wrap; margin-bottom:16px; }
+  .client-pill{
+    font-family:'IBM Plex Mono', monospace; font-size:12px; padding:8px 14px;
+    background:var(--paper-dim); border:1px solid var(--line); color:var(--muted); cursor:pointer; white-space:nowrap;
+  }
+  .client-pill:hover{ background:var(--teal-dim); color:var(--ink); }
+  .client-pill.active{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+
+  .status-line{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--muted); padding:0 20px 14px; }
+  .status-line.err{ color:var(--danger); }
+  .loading-row{ padding:26px 20px; text-align:center; color:var(--muted); font-family:'IBM Plex Mono', monospace; font-size:12px; }
+
+  /* content posts */
+  .posts{ display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:14px; padding:4px 0 0; }
+  .post-card{ background:var(--card); border:1px solid var(--line); border-top:3px solid var(--teal); padding:14px; }
+  .post-card .meta{ display:flex; justify-content:space-between; margin-bottom:8px; }
+  .post-card .platform{ font-family:'IBM Plex Mono', monospace; font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--teal); font-weight:600; }
+  .post-card .idx{ font-family:'IBM Plex Mono', monospace; font-size:10px; color:var(--muted); }
+  .post-card .uses{ font-size:12px; color:var(--muted); margin-bottom:8px; font-style:italic; }
+  .post-card .caption{ font-size:13.5px; line-height:1.5; white-space:pre-wrap; margin-bottom:8px; }
+  .post-card .tags{ font-size:12px; color:var(--teal); margin-bottom:10px; word-break:break-word; }
+  .copied-flag{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--teal); }
+
+  /* calls */
+  .call-entry{ border:1px solid var(--line); background:var(--card); margin-bottom:12px; padding:14px 16px; }
+  .call-entry .call-date{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--muted); margin-bottom:8px; }
+  .call-entry h4{ font-family:'Newsreader', serif; font-size:14.5px; margin:10px 0 4px; font-weight:600; color:var(--teal); }
+  .call-entry ul{ margin:4px 0 0; padding-left:18px; font-size:13px; line-height:1.5; }
+  .call-entry .recap-box{ background:#fff; border:1px solid var(--line); padding:10px; font-size:13px; white-space:pre-wrap; margin-top:4px; }
+
+  /* casting table */
+  table.roster{ width:100%; border-collapse:collapse; font-size:13px; }
+  table.roster th{ text-align:left; font-family:'IBM Plex Mono', monospace; font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--teal); border-bottom:1px solid var(--line); padding:8px 10px; }
+  table.roster td{ padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.roster tr:last-child td{ border-bottom:none; }
+  .roster-actions{ display:flex; gap:6px; }
+
+  .shortlist-card{ border:1px solid var(--line); border-left:3px solid var(--amber); background:var(--card); padding:12px 14px; margin-bottom:10px; }
+  .shortlist-card .name{ font-family:'Newsreader', serif; font-weight:600; font-size:15px; }
+  .shortlist-card .fit{ font-size:13px; line-height:1.5; margin-top:4px; }
+
+  /* tasks */
+  .task-row{ display:flex; align-items:center; gap:10px; padding:9px 16px; border-bottom:1px solid var(--line); }
+  .task-row:last-child{ border-bottom:none; }
+  .task-row input[type=checkbox]{ accent-color:var(--teal); width:16px; height:16px; flex-shrink:0; }
+  .task-row .task-text{ flex:1; font-size:13.5px; }
+  .task-row.done .task-text{ text-decoration:line-through; color:var(--muted); }
+  .task-row .task-meta{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--muted); white-space:nowrap; }
+  .task-filters{ display:flex; gap:8px; padding:12px 16px; border-bottom:1px solid var(--line); }
+  .task-filters button{ font-size:11.5px; padding:5px 10px; }
+  .task-filters button.ghost.active{ background:var(--teal-dim); }
+
+  /* graphics */
+  .graphics-note{ font-size:12.5px; color:var(--muted); line-height:1.5; padding:14px 20px; border-top:1px solid var(--line); background:var(--paper-dim); }
+  .result-img{ max-width:100%; border:1px solid var(--line); margin-top:10px; }
+
+  /* home */
+  .stat-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:14px; margin-bottom:20px; }
+  .stat-box{ background:var(--card); border:1px solid var(--line); border-top:3px solid var(--teal); padding:16px; }
+  .stat-box .num{ font-family:'Newsreader', serif; font-size:30px; font-weight:600; }
+  .stat-box .lbl{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-top:4px; }
+
+  .delete-row{ padding:10px 20px 18px; border-top:1px solid var(--line); }
+
+  /* motion & delight */
+  @keyframes fadeInUp{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:translateY(0); } }
+  .panel{ animation: fadeInUp .28s ease; }
+  button{ transition: transform .12s ease, background .15s ease, box-shadow .15s ease; }
+  button:hover{ transform: translateY(-1px); }
+  button:active{ transform: scale(0.96) translateY(0); }
+  .client-tab, .client-pill, .sub-tab{ transition: background .15s ease, color .15s ease, transform .12s ease; }
+  .client-tab:active, .client-pill:active, .sub-tab:active{ transform: scale(0.97); }
+  .rail .nav-item{ transition: background .15s ease, border-color .2s ease, transform .12s ease; }
+  .rail .nav-item:active{ transform: scale(0.98); }
+  @keyframes checkPop{ 0%{ transform:scale(1); } 35%{ transform:scale(1.035); } 100%{ transform:scale(1); } }
+  .task-row.just-checked{ animation: checkPop .3s ease; }
+  input[type=checkbox]{ transition: transform .12s ease; cursor:pointer; }
+  input[type=checkbox]:active{ transform: scale(1.15); }
+  .candidate-card, .post-card, .production-card, .shortlist-card, .stat-box{ transition: transform .15s ease, box-shadow .15s ease; }
+  .candidate-card:hover{ transform: translateY(-2px); box-shadow: 0 4px 14px rgba(23,23,15,0.08); }
+  .stat-box{ animation: fadeInUp .32s ease; }
+
+  @keyframes confettiFall{
+    0%{ transform: translate(0,0) rotate(0deg); opacity:1; }
+    100%{ transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity:0; }
+  }
+  .confetti-piece{
+    position:fixed; top:0; left:0; width:8px; height:8px; pointer-events:none; z-index:2000;
+    animation: confettiFall var(--dur) ease-out forwards;
+  }
+
+  /* calendar */
+  .cal-day-group{ margin-bottom:14px; }
+  .cal-day-label{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--teal); padding:10px 20px 4px; }
+  .cal-event{ display:flex; gap:12px; padding:10px 20px; border-bottom:1px solid var(--line); align-items:flex-start; }
+  .cal-event:last-child{ border-bottom:none; }
+  .cal-event .time{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--muted); width:70px; flex-shrink:0; padding-top:1px; }
+  .cal-event .body{ flex:1; }
+  .cal-event .title{ font-size:13.5px; font-weight:600; }
+  .cal-event .meta2{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .cal-event .badge{ display:inline-block; font-family:'IBM Plex Mono', monospace; font-size:9.5px; text-transform:uppercase; letter-spacing:.05em; background:var(--teal-dim); color:var(--teal); padding:2px 6px; margin-right:6px; }
+  .sub-tabs{ display:flex; gap:2px; margin-bottom:16px; }
+  .sub-tab{ font-family:'IBM Plex Mono', monospace; font-size:12px; padding:8px 14px; background:var(--paper-dim); border:1px solid var(--line); color:var(--muted); cursor:pointer; }
+  .sub-tab:hover{ background:var(--teal-dim); color:var(--ink); }
+  .sub-tab.active{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+
+  /* mini calendar */
+  .cal-header{ display:flex; align-items:center; justify-content:space-between; padding:16px 20px; }
+  .cal-header h2{ font-family:'Newsreader', serif; font-size:19px; font-weight:600; margin:0; }
+  .cal-nav-btns{ display:flex; gap:6px; }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); border-top:1px solid var(--line); border-left:1px solid var(--line); }
+  .cal-dow{ font-family:'IBM Plex Mono', monospace; font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); text-align:center; padding:6px 0; border-right:1px solid var(--line); border-bottom:1px solid var(--line); background:var(--paper-dim); }
+  .cal-cell{ min-height:64px; border-right:1px solid var(--line); border-bottom:1px solid var(--line); padding:6px; cursor:pointer; position:relative; background:var(--card); }
+  .cal-cell:hover{ background:var(--teal-dim); }
+  .cal-cell.out-month{ background:var(--paper-dim); color:var(--muted); }
+  .cal-cell.is-today .daynum{ background:var(--ink); color:var(--paper); border-radius:50%; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; }
+  .cal-cell.is-selected{ outline:2px solid var(--teal); outline-offset:-2px; }
+  .cal-cell .daynum{ font-family:'IBM Plex Mono', monospace; font-size:12px; }
+  .cal-cell .dots{ position:absolute; bottom:6px; left:6px; display:flex; gap:3px; }
+  .cal-dot{ width:6px; height:6px; border-radius:50%; }
+  .cal-dot.event{ background:var(--teal); }
+  .cal-dot.shoot{ background:var(--amber); }
+  .cal-dot.payment{ background:var(--danger); }
+  .day-events{ padding:6px 20px 16px; }
+  .day-event-row{ padding:10px 0; border-bottom:1px solid var(--line); }
+  .day-event-row:last-child{ border-bottom:none; }
+  .day-event-row .de-title{ font-size:13.5px; font-weight:600; }
+  .day-event-row .de-meta{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--muted); margin-top:2px; }
+  .day-event-row .de-notes{ font-size:12.5px; color:var(--ink); margin-top:4px; }
+  .type-tag{ font-family:'IBM Plex Mono', monospace; font-size:9.5px; text-transform:uppercase; padding:2px 6px; margin-right:6px; }
+  .type-tag.call{ background:var(--teal-dim); color:var(--teal); }
+  .type-tag.shoot{ background:#f2e6c9; color:var(--amber); }
+  .type-tag.general{ background:var(--paper-dim); color:var(--muted); }
+
+  /* productions */
+  .production-card{ background:var(--card); border:1px solid var(--line); border-left:3px solid var(--teal); padding:14px 16px; margin-bottom:12px; cursor:pointer; }
+  .production-card .p-name{ font-family:'Newsreader', serif; font-weight:600; font-size:16px; }
+  .production-card .p-meta{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--muted); margin-top:4px; }
+  .production-card .p-cast{ font-size:12.5px; color:var(--ink); margin-top:6px; }
+  .cast-row{ display:flex; align-items:center; gap:10px; padding:8px 16px; border-bottom:1px solid var(--line); }
+  .cast-row:last-child{ border-bottom:none; }
+  .cast-row .cname{ flex:1; font-size:13.5px; }
+  .status-pill{ font-family:'IBM Plex Mono', monospace; font-size:10px; text-transform:uppercase; padding:3px 8px; border:1px solid var(--line); }
+  .status-pill.confirmed{ background:var(--teal-dim); border-color:var(--teal); color:var(--teal); }
+  .status-pill.tentative{ background:#f2e6c9; border-color:var(--amber); color:var(--amber); }
+  .status-pill.declined{ background:#f0d9d3; border-color:var(--danger); color:var(--danger); }
+
+  .cat-badge{ display:inline-block; font-family:'IBM Plex Mono', monospace; font-size:9.5px; text-transform:uppercase; letter-spacing:.05em; background:var(--paper-dim); border:1px solid var(--line); color:var(--muted); padding:2px 7px; margin-right:6px; }
+  .candidate-card{ background:var(--card); border:1px solid var(--line); cursor:pointer; overflow:hidden; }
+  .candidate-card img{ width:100%; height:150px; object-fit:cover; display:block; border-bottom:1px solid var(--line); }
+  .candidate-card .no-photo{ width:100%; height:150px; display:flex; align-items:center; justify-content:center; background:var(--paper-dim); color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:11px; border-bottom:1px solid var(--line); }
+  .candidate-card .cbody{ padding:10px 12px; }
+  .candidate-card .cname{ font-family:'Newsreader', serif; font-weight:600; font-size:14.5px; }
+
+  .modal-overlay{ position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(23,23,15,0.55); display:flex; align-items:center; justify-content:center; z-index:1000; padding:20px; }
+  .modal-box{ background:var(--card); border:1px solid var(--ink); max-width:420px; width:100%; max-height:88vh; overflow-y:auto; }
+  .modal-box img{ width:100%; max-height:320px; object-fit:cover; display:block; }
+  .modal-box .mbody{ padding:18px 20px; }
+  .modal-close{ position:absolute; top:10px; right:10px; background:var(--ink); color:var(--paper); border:none; width:28px; height:28px; cursor:pointer; font-size:15px; line-height:1; }
+  .modal-box-wrap{ position:relative; }
+  input[type=file]{ font-family:'IBM Plex Sans', sans-serif; font-size:12.5px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="rail">
+    <div class="brand">Ops Desk</div>
+    <div id="navItems"></div>
+  </div>
+  <div class="main" id="main"></div>
+</div>
+
+<script>
+const PLATFORMS = ["Instagram","TikTok","Facebook","X","LinkedIn"];
+const SECTIONS = [
+  {id:'home', label:'Home'},
+  {id:'calendar', label:'Calendar'},
+  {id:'content', label:'Content'},
+  {id:'graphics', label:'Graphics'},
+  {id:'clients', label:'Clients'},
+  {id:'calls', label:'Client Calls'},
+  {id:'casting', label:'Casting'},
+];
+const RELEVANT_KEYWORDS = /shoot|cast|casting|pre-?production|pre-?pro|production|call\b/i;
+const HIGGSFIELD_SOFTWARE = [
+  { value:'soul2', label:'Soul 2.0', group:'Image',
+    guidance:"Higgsfield's native fashion/editorial image model. Prompt like an art director: subject, wardrobe, pose, lighting setup, and mood in concrete visual terms.",
+    technical:'Strong with Soul ID for locking a consistent character/model face across multiple generations — mention if this shot should match a previously established character.' },
+  { value:'soulcinema', label:'Soul Cinema', group:'Image',
+    guidance:'Cinematic-grade stills variant of Soul. Prompt like directing a film still, not a snapshot: lens feel, color grade, framing, and atmosphere in addition to the subject.',
+    technical:'Favors specific film-language terms (e.g. "35mm anamorphic," "teal-and-orange grade") over generic mood words.' },
+  { value:'nanobananapro', label:'Nano Banana Pro', group:'Image',
+    guidance:"Google's reasoning-heavy image model (Gemini 3 Pro Image) — it reasons through spatial relationships and lighting physics before rendering. Best for complex multi-object scenes, layered compositions, and any image that needs legible text rendered in it.",
+    technical:'Write full creative-director sentences, not keyword lists. Supports up to ~14 reference images for brand consistency and up to 4K/14 aspect ratios — mention exact lighting setup (e.g. "three-point softbox") and camera hardware explicitly. Slower (10-20s) and pricier than Nano Banana 2 — reach for it when the scene is genuinely complex or has in-image text.' },
+  { value:'nanobanana2', label:'Nano Banana 2', group:'Image',
+    guidance:"Google's fast default image model (Gemini 3.1 Flash Image), 2-3x quicker than Pro with nearly the same quality on typical prompts.",
+    technical:'Same creative-director prompting style as Pro works, but keep scenes simpler — it reasons less deeply about complex multi-element layouts. Best for rapid iteration and bulk variations rather than one perfect complex composition.' },
+  { value:'seedream', label:'Seedream', group:'Image',
+    guidance:'General-purpose photoreal image model. A straightforward descriptive prompt works well: subject, setting, lighting, style.' },
+  { value:'gptimage', label:'GPT Image', group:'Image',
+    guidance:"OpenAI's general-purpose image model. Clear, structured prompt describing scene, style, and composition.",
+    technical:'Particularly strong at rendering short text accurately inside an image.' },
+  { value:'dop', label:'Higgsfield DOP', group:'Video',
+    guidance:'Image-to-video model — needs a starting keyframe image. Describe the camera move/action (push-in, orbit, handheld, etc.), not just the static scene.' },
+  { value:'popcorn', label:'Popcorn', group:'Video',
+    guidance:'Storyboard-driven video pipeline. Describe a short sequence of shots/beats rather than one static scene.' },
+  { value:'cinemastudio', label:'Cinema Studio', group:'Video',
+    guidance:'Professional virtual-camera video. Include lens type, focal length, camera movement, and grading language for a filmic result.' },
+  { value:'seedance20', label:'Seedance 2.0', group:'Video',
+    guidance:"ByteDance's baseline video model — clips up to 15 seconds, and currently the only Seedance version with native 4K output.",
+    technical:'Accepts up to 12 reference assets in one generation (9 images, 3 videos, 3 audio clips) that the prompt can address directly, plus native lip-synced dialogue across 8+ languages. Good default when the shot is short and 4K matters.' },
+  { value:'seedance25', label:'Seedance 2.5', group:'Video',
+    guidance:"ByteDance's larger, newer video model — native 30-second continuous clips with timestamp-level control, so a prompt can direct exactly what happens at 0-3s, 3-5s, etc., including synchronized voiceover per segment.",
+    technical:'Also supports green-screen output and camera-perspective edits, and takes more reference assets than 2.0. Write it like a mini shot list with timed beats, not a single-sentence description. No native 4K — use 2.0 instead if 4K is required.' },
+  { value:'kling', label:'Kling', group:'Video',
+    guidance:'Handles longer or multi-shot clips. Describe scene progression across the clip, not just a single frozen moment.' },
+  { value:'veo', label:'Veo', group:'Video',
+    guidance:'General cinematic video model. Describe scene, mood, and camera movement in natural language.' },
+  { value:'sora', label:'Sora', group:'Video',
+    guidance:'Strong scene coherence. Describe the full scene and action in narrative terms.' },
+  { value:'wan', label:'Wan', group:'Video',
+    guidance:'General-purpose video model. Clear scene and motion description.' },
+];
+
+let state = {
+  section: 'home',
+  clients: [],
+  activeClientId: null,
+  editingProfile: false,
+  posts: {},
+  calls: {},
+  clientUpdates: {},
+  graphicsGallery: {},
+  dailyResponsibilities: [],
+  todayCompletions: [],
+  todayKey: '',
+  roster: [],
+  productions: [],
+  activeProductionId: null,
+  editingProduction: false,
+  tasks: [],
+  taskFilter: 'open',
+  higgsfieldKey: '',
+  higgsfieldSecret: '',
+  myEvents: [],
+  calendarViewYear: new Date().getFullYear(),
+  calendarViewMonth: new Date().getMonth(),
+  calendarSelectedDate: '',
+  loading: false,
+  loadedOnce: false,
+};
+
+function uid(p){ return (p||'x') + '_' + Math.random().toString(36).slice(2,9); }
+function esc(s){ if(!s) return ''; const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+/* Hosted edition: uses this browser's localStorage instead of Claude's
+   artifact storage, so data persists independent of any Claude conversation. */
+const STORAGE_PREFIX = 'opsdesk:';
+async function storageGet(key){
+  try{
+    const raw = localStorage.getItem(STORAGE_PREFIX + key);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ console.error('load fail', key, e); return null; }
+}
+async function storageSet(key,val){
+  try{ localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(val)); }
+  catch(e){ console.error('save fail', key, e); alert('Could not save — your browser storage may be full or blocked.'); }
+}
+
+async function loadAll(){
+  state.clients = (await storageGet('clients')) || [];
+  state.productions = (await storageGet('productions')) || [];
+  state.tasks = (await storageGet('tasks')) || [];
+  state.dailyResponsibilities = (await storageGet('dailyResponsibilities')) || [];
+  state.todayKey = todayKeyStr();
+  state.todayCompletions = (await storageGet('completions:'+state.todayKey)) || [];
+  state.myEvents = (await storageGet('myEvents')) || [];
+  state.calendarSelectedDate = todayKeyStr();
+  if(state.clients.length) state.activeClientId = state.clients[0].id;
+}
+function todayKeyStr(){ return new Date().toISOString().slice(0,10); }
+
+function spawnConfetti(anchorEl, size){
+  size = size || 'small';
+  const rect = anchorEl.getBoundingClientRect();
+  const originX = rect.left + rect.width/2;
+  const originY = rect.top + rect.height/2;
+  const colors = ['#17170f','#2f5d50','#c07f24','#eeead9','#7a7663'];
+  const count = size==='big' ? 50 : 10;
+  const spreadBase = size==='big' ? 110 : 30;
+  const spreadRange = size==='big' ? 140 : 25;
+  const durBase = size==='big' ? 0.9 : 0.5;
+  const durRange = size==='big' ? 0.6 : 0.3;
+  for(let i=0; i<count; i++){
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    const angle = Math.random() * Math.PI * 2;
+    const distance = spreadBase + Math.random() * spreadRange;
+    const dx = Math.cos(angle) * distance;
+    const dy = Math.sin(angle) * distance - (size==='big' ? 50 : 25);
+    const rot = (Math.random() * 720 - 360) + 'deg';
+    const dur = (durBase + Math.random()*durRange) + 's';
+    piece.style.left = originX + 'px';
+    piece.style.top = originY + 'px';
+    if(size==='big'){ piece.style.width='10px'; piece.style.height='10px'; }
+    piece.style.background = colors[Math.floor(Math.random()*colors.length)];
+    piece.style.setProperty('--dx', dx + 'px');
+    piece.style.setProperty('--dy', dy + 'px');
+    piece.style.setProperty('--rot', rot);
+    piece.style.setProperty('--dur', dur);
+    document.body.appendChild(piece);
+    setTimeout(()=> piece.remove(), 1500);
+  }
+}
+function addBusinessDays(dateStr, n){
+  const d = new Date(dateStr+'T00:00:00');
+  let added = 0;
+  while(added < n){
+    d.setDate(d.getDate()+1);
+    const day = d.getDay();
+    if(day !== 0 && day !== 6) added++;
+  }
+  return d.toISOString().slice(0,10);
+}
+function getPaymentReminders(){
+  return state.productions
+    .filter(p => p.date && !p.paymentPaid)
+    .map(p => ({ production: p, dueDate: addBusinessDays(p.date, 7) }))
+    .sort((a,b) => a.dueDate < b.dueDate ? -1 : 1);
+}
+async function loadClientExtras(clientId){
+  if(!clientId) return;
+  state.posts[clientId] = (await storageGet('posts:'+clientId)) || [];
+  state.calls[clientId] = (await storageGet('calls:'+clientId)) || [];
+  state.clientUpdates[clientId] = (await storageGet('updates:'+clientId)) || [];
+  state.graphicsGallery[clientId] = (await storageGet('graphics:'+clientId)) || [];
+}
+
+function activeClient(){ return state.clients.find(c=>c.id===state.activeClientId) || null; }
+
+function render(){
+  renderNav();
+  renderMain();
+}
+
+function renderNav(){
+  const wrap = document.getElementById('navItems');
+  wrap.innerHTML = '';
+  SECTIONS.forEach((s,i)=>{
+    const item = document.createElement('div');
+    item.className = 'nav-item' + (state.section===s.id ? ' active':'');
+    item.innerHTML = `<span class="no">${String(i+1).padStart(2,'0')}</span><span>${s.label}</span>`;
+    item.onclick = ()=>{ state.section = s.id; render(); };
+    wrap.appendChild(item);
+  });
+}
+
+function renderMain(){
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+  const renderers = { home:renderHome, clients:renderClients, content:renderContent, calls:renderCalls, casting:renderCasting, graphics:renderGraphics, calendar:renderCalendar };
+  renderers[state.section](main);
+}
+
+/* ---------- HOME ---------- */
+function renderHome(main){
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  main.innerHTML = `<div class="section-head"><h1>${greeting}</h1><span class="sub">${new Date().toDateString().toUpperCase()}</span></div>`;
+
+  const checklistPanel = document.createElement('div'); checklistPanel.className='panel';
+  checklistPanel.innerHTML = `
+    <div class="profile-head"><div><h2>Today's checklist</h2><div class="sub">Recurring daily responsibilities — resets each day</div></div><button id="manageRespBtn" class="ghost small">Add Task</button></div>
+    <div id="dailyChecklist"></div>
+  `;
+  main.appendChild(checklistPanel);
+  renderDailyChecklist(checklistPanel.querySelector('#dailyChecklist'));
+  checklistPanel.querySelector('#manageRespBtn').onclick = ()=> openResponsibilityManager(checklistPanel);
+
+  const reminders = getPaymentReminders();
+  if(reminders.length){
+    const remPanel = document.createElement('div'); remPanel.className='panel';
+    remPanel.innerHTML = `<div class="profile-head"><div><h2>Payment reminders</h2><div class="sub">Due 7 business days after each shoot</div></div></div>`;
+    const todayStr = todayKeyStr();
+    reminders.slice(0,5).forEach(r=>{
+      const overdue = r.dueDate < todayStr;
+      const row = document.createElement('div'); row.className='task-row';
+      row.innerHTML = `
+        <span class="task-text">${overdue?'<span class="status-pill declined" style="margin-right:8px;">Overdue</span>':''}${esc(r.production.name)} — payment due ${esc(r.dueDate)}</span>
+        <button class="ghost small markPaidBtn">Mark paid</button>
+      `;
+      row.querySelector('.markPaidBtn').onclick = ()=>{
+        r.production.paymentPaid = true;
+        storageSet('productions', state.productions); render();
+      };
+      remPanel.appendChild(row);
+    });
+    main.appendChild(remPanel);
+  }
+
+  const taskPanel = document.createElement('div'); taskPanel.className='panel';
+  taskPanel.innerHTML = `
+    <div class="profile-head"><div><h2>Tasks</h2><div class="sub">Everything on your plate — ${state.tasks.filter(t=>!t.done).length} open, not tied to today</div></div></div>
+    <div class="field"><label>New task</label><input type="text" id="newTaskText" placeholder="e.g. Send Airo Brands the September call sheet"></div>
+    <div class="grid-2">
+      <div class="field"><label>Project / client (optional)</label>
+        <select id="newTaskProject"><option value="">—</option>${state.clients.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('')}</select>
+      </div>
+      <div class="field"><label>Due (optional)</label><input type="date" id="newTaskDue"></div>
+    </div>
+    <div class="btn-row"><button id="addTaskBtn">Add task</button></div>
+    <div class="task-filters" id="taskFilters"></div>
+    <div id="taskListWrap"></div>
+  `;
+  main.appendChild(taskPanel);
+  taskPanel.querySelector('#addTaskBtn').onclick = ()=>{
+    const text = taskPanel.querySelector('#newTaskText').value.trim();
+    if(!text) return;
+    const project = taskPanel.querySelector('#newTaskProject').value;
+    const due = taskPanel.querySelector('#newTaskDue').value;
+    state.tasks.push({id:uid('t'), text, project, due, done:false});
+    storageSet('tasks', state.tasks); render();
+  };
+  const filtersWrap = taskPanel.querySelector('#taskFilters');
+  ['open','done','all'].forEach(f=>{
+    const b = document.createElement('button'); b.className='ghost small'+(state.taskFilter===f?' active':'');
+    b.textContent = f[0].toUpperCase()+f.slice(1);
+    b.onclick = ()=>{ state.taskFilter=f; render(); };
+    filtersWrap.appendChild(b);
+  });
+  const taskListWrap = taskPanel.querySelector('#taskListWrap');
+  let visibleTasks = state.tasks;
+  if(state.taskFilter==='open') visibleTasks = state.tasks.filter(t=>!t.done);
+  if(state.taskFilter==='done') visibleTasks = state.tasks.filter(t=>t.done);
+  if(!visibleTasks.length){
+    taskListWrap.innerHTML = `<div class="loading-row" style="font-style:italic;">Nothing here.</div>`;
+  }else{
+    visibleTasks.forEach(t=>{
+      const row = document.createElement('div'); row.className='task-row'+(t.done?' done':'');
+      row.innerHTML = `<input type="checkbox" ${t.done?'checked':''}><span class="task-text">${esc(t.text)}</span><span class="task-meta">${t.project?esc(t.project)+' · ':''}${t.due?esc(t.due)+' · ':''}</span><button class="danger small">×</button>`;
+      row.querySelector('input').onchange = (e)=>{ t.done=!t.done; storageSet('tasks',state.tasks); row.classList.add('just-checked'); if(t.done) spawnConfetti(row,'small'); setTimeout(render, 160); };
+      row.querySelector('button').onclick = ()=>{ state.tasks = state.tasks.filter(x=>x.id!==t.id); storageSet('tasks',state.tasks); render(); };
+      taskListWrap.appendChild(row);
+    });
+  }
+
+  const stats = document.createElement('div'); stats.className='stat-grid';
+  const totalCalls = Object.values(state.calls).reduce((a,arr)=>a+(arr?arr.length:0),0);
+  const today = todayKeyStr();
+  const upcomingCalls = state.myEvents.filter(ev => ev.type==='call' && ev.date >= today).length || totalCalls;
+  stats.innerHTML = `
+    <div class="stat-box"><div class="num">${state.clients.length}</div><div class="lbl">Clients</div></div>
+    <div class="stat-box"><div class="num">${state.productions.length}</div><div class="lbl">Productions</div></div>
+    <div class="stat-box"><div class="num">${upcomingCalls}</div><div class="lbl">Upcoming calls</div></div>
+  `;
+  main.appendChild(stats);
+}
+
+function renderDailyChecklist(container){
+  if(!state.dailyResponsibilities.length){
+    container.innerHTML = `<div class="loading-row" style="font-style:italic;">No recurring responsibilities set up yet — click "Manage list" to add some.</div>`;
+    return;
+  }
+  container.innerHTML = '';
+  state.dailyResponsibilities.forEach(r=>{
+    const done = state.todayCompletions.includes(r.id);
+    const row = document.createElement('div'); row.className='task-row'+(done?' done':'');
+    row.innerHTML = `<input type="checkbox" ${done?'checked':''}><span class="task-text">${esc(r.text)}</span>`;
+    row.querySelector('input').onchange = (e)=>{
+      if(e.target.checked) state.todayCompletions.push(r.id);
+      else state.todayCompletions = state.todayCompletions.filter(id=>id!==r.id);
+      storageSet('completions:'+state.todayKey, state.todayCompletions);
+      row.classList.add('just-checked');
+      const nowComplete = state.dailyResponsibilities.length > 0 && state.todayCompletions.length === state.dailyResponsibilities.length;
+      if(e.target.checked){ spawnConfetti(row, nowComplete ? 'big' : 'small'); }
+      setTimeout(render, nowComplete ? 260 : 160);
+    };
+    container.appendChild(row);
+  });
+}
+
+function openResponsibilityManager(panel){
+  const formPanel = document.createElement('div'); formPanel.className='panel'; formPanel.style.marginTop='10px';
+  formPanel.innerHTML = `
+    <div class="profile-head"><h2 style="font-size:16px;">Manage recurring responsibilities</h2></div>
+    <div id="respManageList"></div>
+    <div class="field"><input type="text" id="newRespText" placeholder="e.g. Post to Instagram, check client inboxes"></div>
+    <div class="btn-row"><button id="addRespBtn" class="small">Add</button><button class="ghost small" id="closeRespBtn">Done</button></div>
+  `;
+  panel.appendChild(formPanel);
+  const list = formPanel.querySelector('#respManageList');
+  function renderList(){
+    list.innerHTML = '';
+    state.dailyResponsibilities.forEach(r=>{
+      const row = document.createElement('div'); row.className='task-row';
+      row.innerHTML = `<span class="task-text">${esc(r.text)}</span><button class="danger small">Remove</button>`;
+      row.querySelector('button').onclick = ()=>{
+        state.dailyResponsibilities = state.dailyResponsibilities.filter(x=>x.id!==r.id);
+        storageSet('dailyResponsibilities', state.dailyResponsibilities);
+        renderList();
+      };
+      list.appendChild(row);
+    });
+  }
+  renderList();
+  formPanel.querySelector('#addRespBtn').onclick = ()=>{
+    const txt = formPanel.querySelector('#newRespText').value.trim();
+    if(!txt) return;
+    state.dailyResponsibilities.push({id:uid('r'), text:txt});
+    storageSet('dailyResponsibilities', state.dailyResponsibilities);
+    formPanel.querySelector('#newRespText').value='';
+    renderList();
+  };
+  formPanel.querySelector('#closeRespBtn').onclick = ()=> render();
+}
+
+/* ---------- CLIENTS ---------- */
+function renderClients(main){
+  main.innerHTML = `<div class="section-head"><h1>Clients</h1><span class="sub">${state.clients.length} ON FILE</span></div>`;
+  const pills = document.createElement('div'); pills.className='client-pills';
+  state.clients.forEach(c=>{
+    const p = document.createElement('div');
+    p.className = 'client-pill'+(c.id===state.activeClientId && !state.editingProfile?' active':'');
+    p.textContent = c.name || 'Untitled';
+    p.onclick = ()=>{ state.activeClientId=c.id; state.editingProfile=false; render(); };
+    pills.appendChild(p);
+  });
+  const addPill = document.createElement('div'); addPill.className='client-pill'; addPill.style.color='var(--teal)'; addPill.style.fontWeight='600';
+  addPill.textContent = '+ new client';
+  addPill.onclick = ()=>{
+    const nc = {id:uid('c'), name:'', voice:'', tone:'', platforms:[], pillars:'', avoid:'', hashtags:'', sampleCaption:''};
+    state.clients.push(nc); state.activeClientId=nc.id; state.editingProfile=true; storageSet('clients',state.clients); render();
+  };
+  pills.appendChild(addPill);
+  main.appendChild(pills);
+
+  if(!state.clients.length){
+    const emptyPanel = document.createElement('div'); emptyPanel.className='panel empty-state';
+    emptyPanel.innerHTML = `<div class="glyph">＋</div><div>No clients yet — click "+ new client" above to get started.</div>`;
+    main.appendChild(emptyPanel);
+    return;
+  }
+  const client = activeClient();
+  if(!client) return;
+  main.appendChild(state.editingProfile || !client.name ? buildProfileForm(client) : buildProfileSummary(client));
+  if(!state.editingProfile && client.name){
+    main.appendChild(buildClientResponsibilitiesPanel(client));
+    main.appendChild(buildClientUpdatesPanel(client));
+  }
+}
+
+function buildClientResponsibilitiesPanel(client){
+  const wrap = document.createElement('div'); wrap.className='panel';
+  if(!client.responsibilities) client.responsibilities = [];
+  wrap.innerHTML = `
+    <div class="profile-head"><div><h2>Responsibilities for ${esc(client.name)}</h2><div class="sub">Ongoing duties owed to this client</div></div></div>
+    <div id="respList"></div>
+    <div class="field"><input type="text" id="newRespItem" placeholder="e.g. Weekly content calendar, bi-weekly check-in call"></div>
+    <div class="btn-row"><button id="addRespItemBtn" class="small">Add</button></div>
+  `;
+  const list = wrap.querySelector('#respList');
+  function draw(){
+    list.innerHTML = '';
+    if(!client.responsibilities.length){ list.innerHTML = `<div class="loading-row" style="font-style:italic;">Nothing logged yet.</div>`; return; }
+    client.responsibilities.forEach(r=>{
+      const row = document.createElement('div'); row.className='task-row';
+      row.innerHTML = `<span class="task-text">${esc(r.text)}</span><button class="danger small">Remove</button>`;
+      row.querySelector('button').onclick = ()=>{
+        client.responsibilities = client.responsibilities.filter(x=>x.id!==r.id);
+        storageSet('clients', state.clients); draw();
+      };
+      list.appendChild(row);
+    });
+  }
+  draw();
+  wrap.querySelector('#addRespItemBtn').onclick = ()=>{
+    const txt = wrap.querySelector('#newRespItem').value.trim();
+    if(!txt) return;
+    client.responsibilities.push({id:uid('cr'), text:txt});
+    storageSet('clients', state.clients);
+    wrap.querySelector('#newRespItem').value='';
+    draw();
+  };
+  return wrap;
+}
+
+function buildProfileForm(client){
+  const wrap = document.createElement('div'); wrap.className='panel';
+  wrap.innerHTML = `
+    <div class="profile-head"><div><h2>Client profile</h2><div class="sub">Used across Content, Calls, and Graphics</div></div></div>
+    <div class="grid-2">
+      <div class="field"><label>Client name</label><input type="text" id="f_name" value="${esc(client.name)}" placeholder="e.g. Airo Brands"></div>
+      <div class="field"><label>Platforms</label><div class="platform-check" id="f_platforms"></div></div>
+    </div>
+    <div class="field"><label>Brand voice</label><textarea id="f_voice" placeholder="e.g. Playful but credible, never medical claims">${esc(client.voice)}</textarea></div>
+    <div class="grid-2">
+      <div class="field"><label>Tone words</label><input type="text" id="f_tone" value="${esc(client.tone)}"></div>
+      <div class="field"><label>Standard hashtags</label><input type="text" id="f_hashtags" value="${esc(client.hashtags)}"></div>
+    </div>
+    <div class="field"><label>Content pillars</label><textarea id="f_pillars">${esc(client.pillars)}</textarea></div>
+    <div class="field"><label>Things to avoid / compliance</label><textarea id="f_avoid">${esc(client.avoid)}</textarea></div>
+    <div class="field"><label>Example caption (optional)</label><textarea id="f_sample">${esc(client.sampleCaption)}</textarea></div>
+    <div class="btn-row"><button id="saveProfileBtn">Save client</button>${client.name?'<button class="ghost" id="cancelEditBtn">Cancel</button>':''}</div>
+    <div class="delete-row"><button class="danger" id="deleteClientBtn">Delete this client</button></div>
+  `;
+  const platWrap = wrap.querySelector('#f_platforms');
+  PLATFORMS.forEach(p=>{
+    const lbl = document.createElement('label'); const checked = client.platforms.includes(p);
+    if(checked) lbl.classList.add('checked');
+    lbl.innerHTML = `<input type="checkbox" value="${p}" ${checked?'checked':''}> ${p}`;
+    lbl.querySelector('input').onchange = e=>lbl.classList.toggle('checked', e.target.checked);
+    platWrap.appendChild(lbl);
+  });
+  wrap.querySelector('#saveProfileBtn').onclick = ()=>{
+    client.name = wrap.querySelector('#f_name').value.trim();
+    client.voice = wrap.querySelector('#f_voice').value.trim();
+    client.tone = wrap.querySelector('#f_tone').value.trim();
+    client.hashtags = wrap.querySelector('#f_hashtags').value.trim();
+    client.pillars = wrap.querySelector('#f_pillars').value.trim();
+    client.avoid = wrap.querySelector('#f_avoid').value.trim();
+    client.sampleCaption = wrap.querySelector('#f_sample').value.trim();
+    client.platforms = Array.from(platWrap.querySelectorAll('input:checked')).map(i=>i.value);
+    if(!client.name){ alert('Give this client a name first.'); return; }
+    state.editingProfile=false; storageSet('clients',state.clients); loadClientExtras(client.id).then(render);
+  };
+  const cancelBtn = wrap.querySelector('#cancelEditBtn');
+  if(cancelBtn) cancelBtn.onclick = ()=>{ state.editingProfile=false; render(); };
+  wrap.querySelector('#deleteClientBtn').onclick = async ()=>{
+    if(!(await showConfirmModal(`Delete ${client.name||'this client'}? This removes their profile, content plans, and call logs.`))) return;
+    state.clients = state.clients.filter(c=>c.id!==client.id);
+    delete state.posts[client.id]; delete state.calls[client.id];
+    state.activeClientId = state.clients.length? state.clients[0].id : null;
+    storageSet('clients', state.clients); render();
+  };
+  return wrap;
+}
+
+function buildProfileSummary(client){
+  const wrap = document.createElement('div'); wrap.className='panel';
+  wrap.innerHTML = `
+    <div class="profile-head">
+      <div><h2>${esc(client.name)}</h2><div class="sub">${client.platforms.join(' · ')||'no platforms set'}</div></div>
+      <button class="ghost" id="editProfileBtn">Edit profile</button>
+    </div>
+    <div class="field"><label>Voice</label><div style="font-size:13px;line-height:1.5;">${esc(client.voice)||'—'}</div></div>
+    <div class="field"><label>Compliance / avoid</label><div style="font-size:13px;line-height:1.5;">${esc(client.avoid)||'—'}</div></div>
+  `;
+  wrap.querySelector('#editProfileBtn').onclick = ()=>{ state.editingProfile=true; render(); };
+  return wrap;
+}
+
+function buildClientUpdatesPanel(client){
+  const wrap = document.createElement('div'); wrap.className='panel';
+  const entries = state.clientUpdates[client.id] || [];
+  wrap.innerHTML = `
+    <div class="profile-head">
+      <div><h2>Updates &amp; custom sections</h2><div class="sub">Anything ongoing — notes, links, launch dates, whatever this client needs tracked</div></div>
+      <button id="addUpdateBtn">+ Add</button>
+    </div>
+    <div id="updatesList"></div>
+  `;
+  const list = wrap.querySelector('#updatesList');
+  if(!entries.length){
+    list.innerHTML = `<div class="loading-row" style="font-style:italic;">Nothing added yet.</div>`;
+  }else{
+    [...entries].reverse().forEach(u=>{
+      const entry = document.createElement('div'); entry.className='call-entry';
+      entry.innerHTML = `
+        <div class="call-date">${esc(u.date)}</div>
+        <h4 style="margin-top:2px;">${esc(u.title)}</h4>
+        <div style="font-size:13.5px;line-height:1.5;white-space:pre-wrap;">${esc(u.content)}</div>
+        <div style="margin-top:10px;display:flex;gap:8px;"><button class="danger small delUpdateBtn">Delete</button></div>
+      `;
+      entry.querySelector('.delUpdateBtn').onclick = ()=>{
+        state.clientUpdates[client.id] = state.clientUpdates[client.id].filter(x=>x.id!==u.id);
+        storageSet('updates:'+client.id, state.clientUpdates[client.id]); render();
+      };
+      list.appendChild(entry);
+    });
+  }
+  wrap.querySelector('#addUpdateBtn').onclick = ()=>{
+    const formPanel = document.createElement('div'); formPanel.className='panel'; formPanel.style.marginTop='-6px'; formPanel.style.marginBottom='14px';
+    formPanel.innerHTML = `
+      <div class="field"><label>Title</label><input type="text" id="uTitle" placeholder="e.g. New product line launching, Key contact change"></div>
+      <div class="field"><label>Details</label><textarea id="uContent" style="min-height:90px;"></textarea></div>
+      <div class="btn-row"><button id="saveUpdateBtn">Save</button><button class="ghost" id="cancelUpdateBtn">Cancel</button></div>
+    `;
+    wrap.insertBefore(formPanel, list);
+    formPanel.querySelector('#cancelUpdateBtn').onclick = ()=> formPanel.remove();
+    formPanel.querySelector('#saveUpdateBtn').onclick = ()=>{
+      const title = formPanel.querySelector('#uTitle').value.trim();
+      const content = formPanel.querySelector('#uContent').value.trim();
+      if(!title){ alert('Give it a title.'); return; }
+      if(!state.clientUpdates[client.id]) state.clientUpdates[client.id] = [];
+      state.clientUpdates[client.id].push({ id: uid('u'), date: new Date().toLocaleDateString(), title, content });
+      storageSet('updates:'+client.id, state.clientUpdates[client.id]);
+      render();
+    };
+  };
+  return wrap;
+}
+
+function clientPillsBar(sectionId, onSelect){
+  const bar = document.createElement('div'); bar.className='client-pills';
+  if(!state.clients.length){
+    bar.innerHTML = `<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);">No clients yet — add one in the Clients tab first.</span>`;
+    return bar;
+  }
+  state.clients.forEach(c=>{
+    const p = document.createElement('div');
+    p.className = 'client-pill'+(c.id===state.activeClientId?' active':'');
+    p.textContent = c.name || 'Untitled';
+    p.onclick = async ()=>{ state.activeClientId=c.id; await loadClientExtras(c.id); onSelect(); };
+    bar.appendChild(p);
+  });
+  return bar;
+}
+
+/* ---------- CONTENT (folded-in Content Desk) ---------- */
+function renderContent(main){
+  main.innerHTML = `<div class="section-head"><h1>Content</h1><span class="sub">CONCEPTS &amp; IDEAS, NOT FINAL COPY</span></div>`;
+  main.appendChild(clientPillsBar('content', render));
+  const client = activeClient();
+  if(!client){ main.appendChild(el('div','panel empty-state','Select or add a client to plan content.')); return; }
+  if(!client.name){ main.appendChild(el('div','panel empty-state','Finish setting up this client profile in the Clients tab first.')); return; }
+
+  const intakePanel = document.createElement('div'); intakePanel.className='panel';
+  intakePanel.innerHTML = `
+    <div class="profile-head"><div><h2>Generate content concepts</h2><div class="sub">Ideas to react to and develop — not ready-to-post copy</div></div></div>
+    <div class="field">
+      <label>Raw content or notes (optional — leave blank for fresh ideas based on this client's pillars)</label>
+      <textarea id="rawContent" style="min-height:90px;" placeholder="e.g. 12 product shots of the new drop, BTS video, 3 lifestyle shots from the launch event"></textarea>
+    </div>
+    <div class="btn-row" style="align-items:flex-end;">
+      <div style="width:110px;"><label style="display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--teal);margin-bottom:6px;">Ideas</label><input type="text" id="postCount" value="5"></div>
+      <button id="generateBtn">Generate concepts</button>
+    </div>
+    <div class="status-line" id="statusLine"></div>
+  `;
+  main.appendChild(intakePanel);
+
+  const head = document.createElement('div'); head.className='profile-head'; head.style.background='transparent'; head.style.border='none'; head.style.padding='0 0 10px';
+  head.innerHTML = `<h2 style="font-size:18px;">Concepts</h2>`;
+  main.appendChild(head);
+  const postsWrap = document.createElement('div'); postsWrap.id='postsWrap'; main.appendChild(postsWrap);
+  renderPosts(postsWrap, client.id);
+
+  intakePanel.querySelector('#generateBtn').onclick = ()=>{
+    const raw = intakePanel.querySelector('#rawContent').value.trim();
+    const count = parseInt(intakePanel.querySelector('#postCount').value,10)||5;
+    generatePosts(client, raw, count);
+  };
+}
+
+function setStatus(id, msg, isErr){
+  const elx = document.getElementById(id); if(!elx) return;
+  elx.textContent = msg||''; elx.className = 'status-line'+(isErr?' err':'');
+}
+
+function renderPosts(container, clientId){
+  const posts = state.posts[clientId] || [];
+  if(state.loading){ container.innerHTML = `<div class="panel loading-row">Brainstorming concepts…</div>`; return; }
+  if(!posts.length){ container.innerHTML = `<div class="panel loading-row" style="font-style:italic;">Nothing generated yet.</div>`; return; }
+  container.innerHTML = '';
+  const grid = document.createElement('div'); grid.className='posts';
+  posts.forEach((p,i)=>{
+    const card = document.createElement('div'); card.className='post-card';
+    card.innerHTML = `
+      <div class="meta"><span class="platform">${esc(p.format||'Concept')}</span><span class="idx">${String(i+1).padStart(2,'0')}</span></div>
+      <div class="uses" style="font-style:normal;font-weight:600;color:var(--ink);font-family:'Newsreader',serif;font-size:15px;">${esc(p.title||'')}</div>
+      <div class="caption">${esc(p.concept||'')}</div>
+      <div class="tags" style="font-style:italic;">${esc(p.captionDirection||'')}</div>
+      <div style="display:flex;gap:8px;"><button class="ghost small copyBtn">Copy concept</button><span class="copied-flag" style="display:none;">Copied</span></div>
+    `;
+    const copyBtn = card.querySelector('.copyBtn'); const flag = card.querySelector('.copied-flag');
+    copyBtn.onclick = async ()=>{
+      const text = `${p.title||''}\\n${p.concept||''}\\nCaption direction: ${p.captionDirection||''}`;
+      try{ await navigator.clipboard.writeText(text); flag.style.display='inline'; setTimeout(()=>flag.style.display='none',1500); }catch(e){}
+    };
+    grid.appendChild(card);
+  });
+  container.appendChild(grid);
+}
+
+async function generatePosts(client, raw, count){
+  state.loading = true; setStatus('statusLine','');
+  renderPosts(document.getElementById('postsWrap'), client.id);
+  const systemPrompt = `You are a social media content strategist generating CONCEPTS for a client to react to — not finished, ready-to-post captions. Respond ONLY with valid JSON, no preamble, no markdown fences. The JSON must be an array of concept objects with exactly these fields: "format" (e.g. Photo, Reel, Carousel, Story), "title" (a short punchy hook/name for the idea), "concept" (2-3 sentences describing the idea, angle, or story), "captionDirection" (one short line on the tone/angle a caption for this could take — not a full caption).`;
+  const userPrompt = `CLIENT: ${client.name}\\nPLATFORMS: ${client.platforms.join(', ')||'Instagram'}\\nVOICE: ${client.voice||'not specified'}\\nTONE: ${client.tone||'not specified'}\\nPILLARS: ${client.pillars||'not specified'}\\nAVOID/COMPLIANCE (follow strictly): ${client.avoid||'none'}\\n\\n${raw ? 'RAW CONTENT AVAILABLE:\\n'+raw : 'No specific raw content provided — generate fresh ideas based on the pillars and voice above.'}\\n\\nGenerate ${count} distinct content concepts. Return ONLY the JSON array.`;
+  try{
+    const res = await callClaude(systemPrompt, userPrompt, 2000);
+    const parsed = parseJsonFromClaude(res);
+    state.posts[client.id] = parsed;
+    await storageSet('posts:'+client.id, parsed);
+    setStatus('statusLine', `Generated ${parsed.length} concepts.`);
+  }catch(e){ console.error(e); setStatus('statusLine','Something went wrong. Try again.', true); }
+  finally{ state.loading=false; renderPosts(document.getElementById('postsWrap'), client.id); }
+}
+
+/* ---------- CALLS ---------- */
+function renderCalls(main){
+  main.innerHTML = `<div class="section-head"><h1>Client Calls</h1><span class="sub">NOTES → SUMMARY, ACTIONS, RECAP</span></div>`;
+  main.appendChild(clientPillsBar('calls', render));
+  const client = activeClient();
+  if(!client){ main.appendChild(el('div','panel empty-state','Select or add a client first.')); return; }
+
+  const intakePanel = document.createElement('div'); intakePanel.className='panel';
+  intakePanel.innerHTML = `
+    <div class="profile-head"><div><h2>Paste call notes or transcript</h2><div class="sub">Raw is fine — bullet points, rambling notes, whatever you've got</div></div></div>
+    <div class="field"><textarea id="callRaw" style="min-height:130px;" placeholder="Paste your notes or transcript here..."></textarea></div>
+    <div class="btn-row"><button id="processCallBtn">Summarize &amp; draft recap</button></div>
+    <div class="status-line" id="callStatus"></div>
+  `;
+  main.appendChild(intakePanel);
+
+  const head = document.createElement('div'); head.style.padding='4px 0 10px';
+  head.innerHTML = `<h2 style="font-family:'Newsreader',serif;font-size:18px;font-weight:600;margin:0;">Call history</h2>`;
+  main.appendChild(head);
+  const histWrap = document.createElement('div'); histWrap.id='callHistWrap'; main.appendChild(histWrap);
+  renderCallHistory(histWrap, client.id);
+
+  intakePanel.querySelector('#processCallBtn').onclick = ()=>{
+    const raw = intakePanel.querySelector('#callRaw').value.trim();
+    if(!raw){ setStatus('callStatus','Paste some notes first.', true); return; }
+    processCall(client, raw, intakePanel);
+  };
+}
+
+function renderCallHistory(container, clientId){
+  const calls = state.calls[clientId] || [];
+  if(state.loading){ container.innerHTML = `<div class="panel loading-row">Processing call notes…</div>`; return; }
+  if(!calls.length){ container.innerHTML = `<div class="panel loading-row" style="font-style:italic;">No calls logged yet for this client.</div>`; return; }
+  container.innerHTML = '';
+  [...calls].reverse().forEach(c=>{
+    const entry = document.createElement('div'); entry.className='call-entry';
+    entry.innerHTML = `
+      <div class="call-date">${esc(c.date)}</div>
+      <div style="font-size:13.5px;line-height:1.5;">${esc(c.summary)}</div>
+      <h4>Action items</h4>
+      <ul>${(c.actionItems||[]).map(a=>`<li>${esc(a)}</li>`).join('')}</ul>
+      <h4>Recap email draft</h4>
+      <div class="recap-box">${esc(c.recapEmail)}</div>
+      <div style="margin-top:10px;"><button class="ghost small copyRecap">Copy recap email</button></div>
+    `;
+    entry.querySelector('.copyRecap').onclick = async ()=>{
+      try{ await navigator.clipboard.writeText(c.recapEmail||''); }catch(e){}
+    };
+    container.appendChild(entry);
+  });
+}
+
+async function processCall(client, raw, intakePanel){
+  state.loading = true;
+  renderCallHistory(document.getElementById('callHistWrap'), client.id);
+  const systemPrompt = `You are an assistant that turns raw call notes into a structured record. Respond ONLY with valid JSON, no markdown fences. JSON object with exactly these fields: "summary" (2-4 sentences), "actionItems" (array of short strings, each with an owner if mentioned), "recapEmail" (a full, ready-to-send recap email body, professional but warm, no subject line).`;
+  const userPrompt = `CLIENT: ${client.name}\\nBRAND VOICE FOR THIS CLIENT (match tone loosely, keep it professional): ${client.voice||'not specified'}\\n\\nRAW CALL NOTES:\\n${raw}\\n\\nReturn ONLY the JSON object.`;
+  try{
+    const res = await callClaude(systemPrompt, userPrompt, 1500);
+    const parsed = parseJsonFromClaude(res);
+    const entry = { id: uid('call'), date: new Date().toLocaleString(), rawNotes: raw, summary: parsed.summary, actionItems: parsed.actionItems||[], recapEmail: parsed.recapEmail };
+    if(!state.calls[client.id]) state.calls[client.id] = [];
+    state.calls[client.id].push(entry);
+    await storageSet('calls:'+client.id, state.calls[client.id]);
+    intakePanel.querySelector('#callRaw').value = '';
+    setStatus('callStatus','Call logged.');
+  }catch(e){ console.error(e); setStatus('callStatus','Something went wrong. Try again.', true); }
+  finally{ state.loading=false; renderCallHistory(document.getElementById('callHistWrap'), client.id); }
+}
+
+/* ---------- CASTING (by production) ---------- */
+function renderCasting(main){
+  main.innerHTML = `<div class="section-head"><h1>Casting</h1><span class="sub">${state.productions.length} PRODUCTION${state.productions.length===1?'':'S'}</span></div>`;
+
+  const pills = document.createElement('div'); pills.className='client-pills';
+  state.productions.forEach((p,i)=>{
+    const pill = document.createElement('div');
+    pill.className = 'client-pill'+(p.id===state.activeProductionId && !state.editingProduction ? ' active':'');
+    pill.textContent = p.name || 'Untitled';
+    pill.onclick = ()=>{ state.activeProductionId=p.id; state.editingProduction=false; render(); };
+    pills.appendChild(pill);
+  });
+  const addPill = document.createElement('div'); addPill.className='client-pill'; addPill.style.color='var(--teal)'; addPill.style.fontWeight='600';
+  addPill.textContent = '+ new production';
+  addPill.onclick = ()=>{
+    const prod = { id: uid('p'), name:'', client:'', date:'', location:'', brief:'', cast:[], paymentPaid:false };
+    state.productions.push(prod);
+    state.activeProductionId = prod.id;
+    state.editingProduction = true;
+    storageSet('productions', state.productions); render();
+  };
+  pills.appendChild(addPill);
+  main.appendChild(pills);
+
+  if(!state.productions.length){
+    main.appendChild(el('div','panel empty-state','No productions yet — click "+ new production" above to start one.'));
+    return;
+  }
+  const prod = state.productions.find(p=>p.id===state.activeProductionId) || state.productions[0];
+  state.activeProductionId = prod.id;
+  if(state.editingProduction || !prod.name){
+    main.appendChild(buildProductionForm(prod));
+    return;
+  }
+  main.appendChild(buildProductionDetail(prod));
+}
+
+function buildProductionForm(prod){
+  const wrap = document.createElement('div'); wrap.className='panel';
+  wrap.innerHTML = `
+    <div class="profile-head"><div><h2>Production details</h2><div class="sub">A shoot, campaign, or job you're casting for</div></div></div>
+    <div class="grid-2">
+      <div class="field"><label>Production name</label><input type="text" id="pName" value="${esc(prod.name)}" placeholder="e.g. Airo Brands — September Editorial"></div>
+      <div class="field"><label>Client</label>
+        <select id="pClient"><option value="">—</option>${state.clients.map(c=>`<option value="${esc(c.name)}" ${prod.client===c.name?'selected':''}>${esc(c.name)}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>Shoot date</label><input type="date" id="pDate" value="${esc(prod.date)}"></div>
+      <div class="field"><label>Location</label><input type="text" id="pLocation" value="${esc(prod.location)}" placeholder="e.g. Studio B, Brooklyn"></div>
+    </div>
+    <div class="field"><label>Brief</label><textarea id="pBrief" placeholder="e.g. Editorial shoot for streetwear drop, need 3 models, athletic build, comfortable with bold poses">${esc(prod.brief)}</textarea></div>
+    <div class="btn-row"><button id="saveProdBtn">Save production</button>${prod.name?'<button class="ghost" id="cancelProdBtn">Cancel</button>':''}</div>
+    <div class="delete-row"><button class="danger small" id="deleteProdFormBtn">Delete this production</button></div>
+  `;
+  wrap.querySelector('#saveProdBtn').onclick = ()=>{
+    const name = wrap.querySelector('#pName').value.trim();
+    if(!name){ alert('Give the production a name first.'); return; }
+    prod.name = name;
+    prod.client = wrap.querySelector('#pClient').value;
+    prod.date = wrap.querySelector('#pDate').value;
+    prod.location = wrap.querySelector('#pLocation').value.trim();
+    prod.brief = wrap.querySelector('#pBrief').value.trim();
+    state.editingProduction = false;
+    storageSet('productions', state.productions); render();
+  };
+  const cancelBtn = wrap.querySelector('#cancelProdBtn');
+  if(cancelBtn) cancelBtn.onclick = ()=>{ state.editingProduction=false; render(); };
+  wrap.querySelector('#deleteProdFormBtn').onclick = async ()=>{
+    if(!(await showConfirmModal(`Delete "${prod.name||'this production'}"? This removes its whole candidate pool too.`))) return;
+    state.productions = state.productions.filter(p=>p.id!==prod.id);
+    state.activeProductionId = state.productions.length ? state.productions[0].id : null;
+    state.editingProduction = false;
+    storageSet('productions', state.productions); render();
+  };
+  return wrap;
+}
+
+function buildProductionDetail(prod){
+  const wrap = document.createElement('div');
+  const dueDate = prod.date ? addBusinessDays(prod.date, 7) : null;
+
+  const infoPanel = document.createElement('div'); infoPanel.className='panel';
+  infoPanel.innerHTML = `
+    <div class="profile-head">
+      <div><h2>${esc(prod.name)}</h2><div class="sub">${esc(prod.client)||'no client'} ${prod.date?'· '+esc(prod.date):''} ${prod.location?'· '+esc(prod.location):''}</div></div>
+      <div style="display:flex;gap:8px;">
+        <button class="ghost small" id="editProdBtn">Edit</button>
+        <button class="danger small" id="deleteProdDetailBtn">Delete</button>
+      </div>
+    </div>
+    <div class="field"><label>Brief</label><div style="font-size:13px;line-height:1.5;">${esc(prod.brief)||'—'}</div></div>
+    ${dueDate ? `<div class="field">
+      <label>Payment</label>
+      <div style="font-size:13px;display:flex;align-items:center;gap:10px;">
+        ${prod.paymentPaid ? '<span class="status-pill confirmed">Paid</span>' : `<span class="status-pill ${dueDate < todayKeyStr() ? 'declined' : 'tentative'}">${dueDate < todayKeyStr() ? 'Overdue' : 'Due'} ${esc(dueDate)}</span>`}
+        <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="paidChk" ${prod.paymentPaid?'checked':''}> Mark paid</label>
+      </div>
+    </div>` : ''}
+  `;
+  wrap.appendChild(infoPanel);
+  infoPanel.querySelector('#editProdBtn').onclick = ()=>{ state.editingProduction=true; render(); };
+  infoPanel.querySelector('#deleteProdDetailBtn').onclick = async ()=>{
+    if(!(await showConfirmModal(`Delete "${prod.name}"? This removes its whole candidate pool too.`))) return;
+    state.productions = state.productions.filter(p=>p.id!==prod.id);
+    state.activeProductionId = state.productions.length ? state.productions[0].id : null;
+    storageSet('productions', state.productions); render();
+  };
+  const paidChk = infoPanel.querySelector('#paidChk');
+  if(paidChk) paidChk.onchange = (e)=>{ prod.paymentPaid = e.target.checked; storageSet('productions', state.productions); render(); };
+
+  const poolPanel = document.createElement('div'); poolPanel.className='panel';
+  poolPanel.innerHTML = `<div class="profile-head"><div><h2>Casting pool</h2><div class="sub">${prod.cast.length} prospective model${prod.cast.length===1?'':'s'}/actor${prod.cast.length===1?'':'s'} for this production</div></div><button id="addCandidateBtn">+ Add candidate</button></div>`;
+  const poolBody = document.createElement('div'); poolBody.style.padding='14px 20px';
+  poolPanel.appendChild(poolBody);
+  wrap.appendChild(poolPanel);
+  renderCandidatePool(poolBody, prod, poolPanel);
+  poolPanel.querySelector('#addCandidateBtn').onclick = ()=> openCandidateForm(prod, null, poolPanel);
+
+  const shortlistPanel = document.createElement('div'); shortlistPanel.className='panel';
+  shortlistPanel.innerHTML = `
+    <div class="profile-head"><div><h2>Rank against the brief</h2><div class="sub">AI review of your current candidate pool against this production's brief</div></div></div>
+    <div class="btn-row"><button id="shortlistBtn">Run ranking</button></div>
+    <div class="status-line" id="shortlistStatus"></div>
+  `;
+  wrap.appendChild(shortlistPanel);
+  const shortlistWrap = document.createElement('div'); shortlistWrap.id='shortlistWrap';
+  wrap.appendChild(shortlistWrap);
+  shortlistPanel.querySelector('#shortlistBtn').onclick = ()=>{
+    if(!prod.brief){ setStatus('shortlistStatus','Add a brief to this production first.', true); return; }
+    if(!prod.cast.length){ setStatus('shortlistStatus','Add candidates to the pool first.', true); return; }
+    generateShortlist(prod, shortlistWrap);
+  };
+
+  return wrap;
+}
+
+function renderCandidatePool(container, prod, poolPanel){
+  if(!prod.cast.length){
+    container.innerHTML = `<div class="loading-row" style="font-style:italic;">Nobody added yet — click "+ Add candidate" to start building this production's pool.</div>`;
+    return;
+  }
+  container.innerHTML = '';
+  const grid = document.createElement('div'); grid.className='posts';
+  prod.cast.forEach(c=>{
+    const card = document.createElement('div'); card.className='candidate-card';
+    card.innerHTML = `
+      ${c.headshotUrl ? `<img src="${c.headshotUrl}">` : `<div class="no-photo">No photo</div>`}
+      <div class="cbody">
+        <div class="cname">${esc(c.name)}</div>
+        <div style="margin-top:4px;">${c.category?'<span class="cat-badge">'+esc(c.category)+'</span>':''}<span class="status-pill ${c.status}">${esc(c.status)}</span></div>
+      </div>
+    `;
+    card.onclick = ()=> openCandidateModal(c, prod, poolPanel);
+    grid.appendChild(card);
+  });
+  container.appendChild(grid);
+}
+
+function fileToCompressedDataUrl(file, maxDim, quality){
+  maxDim = maxDim || 700; quality = quality || 0.78;
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let w = img.width, h = img.height;
+        if(w > h){ if(w > maxDim){ h = Math.round(h * maxDim / w); w = maxDim; } }
+        else{ if(h > maxDim){ w = Math.round(w * maxDim / h); h = maxDim; } }
+        const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function openCandidateForm(prod, existing, anchorPanel){
+  const isNew = !existing;
+  const c = existing || { id: uid('cand'), name:'', category:'', headshotUrl:'', details:'', status:'tentative' };
+  const formPanel = document.createElement('div'); formPanel.className='panel'; formPanel.style.marginBottom='14px';
+  formPanel.innerHTML = `
+    <div class="profile-head"><h2 style="font-size:16px;">${isNew?'Add candidate':'Edit candidate'}</h2></div>
+    <div class="grid-2">
+      <div class="field"><label>Name</label><input type="text" id="cName" value="${esc(c.name)}" placeholder="Full name"></div>
+      <div class="field"><label>Category</label>
+        <select id="cCategory">
+          <option value="">—</option>
+          <option value="Male Model" ${c.category==='Male Model'?'selected':''}>Male Model</option>
+          <option value="Female Model" ${c.category==='Female Model'?'selected':''}>Female Model</option>
+          <option value="Actor" ${c.category==='Actor'?'selected':''}>Actor</option>
+          <option value="Actress" ${c.category==='Actress'?'selected':''}>Actress</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Headshot</label><input type="file" id="cFile" accept="image/*">${c.headshotUrl?'<div class="hint">A photo is already attached — choosing a new one replaces it.</div>':''}</div>
+    <div class="field"><label>Status</label>
+      <select id="cStatus">
+        <option value="tentative" ${c.status==='tentative'?'selected':''}>Tentative</option>
+        <option value="confirmed" ${c.status==='confirmed'?'selected':''}>Confirmed</option>
+        <option value="declined" ${c.status==='declined'?'selected':''}>Declined</option>
+      </select>
+    </div>
+    <div class="field"><label>Details</label><textarea id="cDetails" placeholder="Measurements, availability, rate, notes...">${esc(c.details)}</textarea></div>
+    <div class="btn-row"><button id="saveCandBtn">Save</button><button class="ghost" id="cancelCandBtn">Cancel</button></div>
+  `;
+  anchorPanel.parentNode.insertBefore(formPanel, anchorPanel.nextSibling);
+  formPanel.scrollIntoView({behavior:'smooth', block:'nearest'});
+  formPanel.querySelector('#cancelCandBtn').onclick = ()=> formPanel.remove();
+  formPanel.querySelector('#saveCandBtn').onclick = async ()=>{
+    const name = formPanel.querySelector('#cName').value.trim();
+    if(!name){ alert('Give this candidate a name first.'); return; }
+    c.name = name;
+    c.category = formPanel.querySelector('#cCategory').value;
+    c.status = formPanel.querySelector('#cStatus').value;
+    c.details = formPanel.querySelector('#cDetails').value.trim();
+    const fileInput = formPanel.querySelector('#cFile');
+    if(fileInput.files && fileInput.files[0]){
+      try{ c.headshotUrl = await fileToCompressedDataUrl(fileInput.files[0]); }
+      catch(e){ console.error(e); alert('Could not process that image — try a different file.'); return; }
+    }
+    if(isNew) prod.cast.push(c);
+    await storageSet('productions', state.productions);
+    formPanel.remove();
+    render();
+  };
+}
+
+function openCandidateModal(c, prod, poolPanel){
+  const overlay = document.createElement('div'); overlay.className='modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-box-wrap">
+        <button class="modal-close">×</button>
+        ${c.headshotUrl ? `<img src="${c.headshotUrl}">` : ''}
+      </div>
+      <div class="mbody">
+        <h2 style="font-family:'Newsreader',serif;font-size:20px;margin:0 0 6px;">${esc(c.name)}</h2>
+        <div style="margin-bottom:10px;">${c.category?'<span class="cat-badge">'+esc(c.category)+'</span>':''}<span class="status-pill ${c.status}">${esc(c.status)}</span></div>
+        <div style="font-size:13.5px;line-height:1.6;white-space:pre-wrap;">${esc(c.details)||'No details added yet.'}</div>
+        <div class="btn-row" style="padding-left:0;">
+          <button class="ghost small" id="editCandModalBtn">Edit</button>
+          <button class="danger small" id="delCandModalBtn">Remove</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.onclick = (e)=>{ if(e.target===overlay) overlay.remove(); };
+  overlay.querySelector('.modal-close').onclick = ()=> overlay.remove();
+  overlay.querySelector('#delCandModalBtn').onclick = async ()=>{
+    if(!(await showConfirmModal(`Remove ${c.name} from this production's pool?`))) return;
+    prod.cast = prod.cast.filter(x=>x.id!==c.id);
+    storageSet('productions', state.productions);
+    overlay.remove(); render();
+  };
+  overlay.querySelector('#editCandModalBtn').onclick = ()=>{
+    overlay.remove();
+    openCandidateForm(prod, c, poolPanel);
+  };
+}
+
+async function generateShortlist(prod, wrap){
+  state.loading = true;
+  wrap.innerHTML = `<div class="panel loading-row">Reviewing the candidate pool against the brief…</div>`;
+  const poolText = prod.cast.map(c=>`- ${c.name} | category: ${c.category||'unspecified'} | status: ${c.status} | details: ${c.details}`).join('\\n');
+  const systemPrompt = `You are a casting assistant. Respond ONLY with valid JSON, no markdown fences. JSON array of entries, each with "name" (must match a candidate name exactly), "fit" (2-3 sentences on how well they fit the brief and any concerns), ordered best fit first. Include every candidate provided, even weak fits — just note the concern.`;
+  const userPrompt = `SHOOT BRIEF:\\n${prod.brief}\\n\\nCANDIDATE POOL:\\n${poolText}\\n\\nReturn ONLY the JSON array.`;
+  try{
+    const res = await callClaude(systemPrompt, userPrompt, 1500);
+    const parsed = parseJsonFromClaude(res);
+    state.loading = false;
+    wrap.innerHTML = '';
+    parsed.forEach((p,i)=>{
+      const card = document.createElement('div'); card.className='shortlist-card';
+      card.innerHTML = `<div class="name">${String(i+1).padStart(2,'0')} — ${esc(p.name)}</div><div class="fit">${esc(p.fit)}</div>`;
+      wrap.appendChild(card);
+    });
+    setStatus('shortlistStatus', `Ranked ${parsed.length} candidate(s).`);
+  }catch(e){
+    console.error(e); state.loading=false;
+    wrap.innerHTML = `<div class="panel loading-row" style="font-style:italic;">Something went wrong. Try again.</div>`;
+    setStatus('shortlistStatus','Something went wrong.', true);
+  }
+}
+
+/* ---------- GRAPHICS ---------- */
+function renderGraphics(main){
+  main.innerHTML = `<div class="section-head"><h1>Graphics</h1><span class="sub">PROMPT BUILDER FOR HIGGSFIELD</span></div>`;
+  main.appendChild(clientPillsBar('graphics', render));
+  const client = activeClient();
+
+  const promptPanel = document.createElement('div'); promptPanel.className='panel';
+  promptPanel.innerHTML = `
+    <div class="profile-head"><div><h2>Prompt builder</h2><div class="sub">Turn a rough idea into a detailed generation prompt</div></div></div>
+    <div class="field"><label>Software</label>
+      <select id="softwareSelect">
+        <optgroup label="Image">${HIGGSFIELD_SOFTWARE.filter(s=>s.group==='Image').map(s=>`<option value="${s.value}">${esc(s.label)}</option>`).join('')}</optgroup>
+        <optgroup label="Video">${HIGGSFIELD_SOFTWARE.filter(s=>s.group==='Video').map(s=>`<option value="${s.value}">${esc(s.label)}</option>`).join('')}</optgroup>
+      </select>
+      <div class="hint" id="softwareHint"></div>
+    </div>
+    <div class="field"><label>Rough idea</label><textarea id="ideaText" placeholder="e.g. product shot of the new vape cart on a dark marble surface, moody lighting"></textarea></div>
+    <div class="btn-row"><button id="suggestPromptBtn">Suggest a detailed prompt</button></div>
+    <div class="field"><label>Prompt to use</label><textarea id="finalPrompt" style="min-height:90px;"></textarea></div>
+    <div class="btn-row">
+      <button id="copyOpenBtn">Copy prompt &amp; open Higgsfield</button>
+    </div>
+    <div class="status-line" id="promptStatus"></div>
+    <div class="graphics-note">
+      Ops Desk never asks for your Higgsfield password or API keys, and never calls Higgsfield's API directly from this page. That's intentional: Higgsfield's own documentation warns against calling their API from browser code, since it would expose your account credentials to anyone who inspects the page. This builder writes the prompt for you — generation itself happens in Higgsfield's own app, where your account stays secure.
+    </div>
+  `;
+  main.appendChild(promptPanel);
+
+  const softwareSelect = promptPanel.querySelector('#softwareSelect');
+  const softwareHint = promptPanel.querySelector('#softwareHint');
+  function updateSoftwareHint(){
+    const sw = HIGGSFIELD_SOFTWARE.find(s=>s.value===softwareSelect.value);
+    softwareHint.textContent = sw ? (sw.guidance + (sw.technical ? ' ' + sw.technical : '')) : '';
+  }
+  softwareSelect.onchange = updateSoftwareHint;
+  updateSoftwareHint();
+
+  promptPanel.querySelector('#suggestPromptBtn').onclick = async ()=>{
+    const idea = promptPanel.querySelector('#ideaText').value.trim();
+    if(!idea){ setStatus('promptStatus','Type a rough idea first.', true); return; }
+    const sw = HIGGSFIELD_SOFTWARE.find(s=>s.value===softwareSelect.value);
+    setStatus('promptStatus','Drafting prompt…');
+    try{
+      const systemPrompt = `You write detailed, effective prompts for AI image/video generation software. You know these tools individually — their real technical constraints, reference-handling, and what kind of prompt language actually produces good results on each one. Tailor the prompt's structure and language specifically to the named tool's conventions, working within its real capabilities. Respond with ONLY the prompt text, nothing else — no preamble, no quotes, no markdown.`;
+      const userPrompt = `Target software: ${sw?sw.label:'general image/video model'} (${sw?sw.group:'Image'})\\nHow this tool wants to be prompted: ${sw?sw.guidance:'general descriptive prompt'}\\nTechnical specifics to work within: ${sw&&sw.technical?sw.technical:'none specified'}\\nClient brand voice: ${client? (client.voice||'not specified') : 'not specified'}\\nRough idea: ${idea}\\n\\nWrite one detailed generation prompt suited specifically to this tool's real conventions and constraints.`;
+      const res = await callClaude(systemPrompt, userPrompt, 500);
+      const textBlock = (res.content||[]).find(b=>b.type==='text');
+      promptPanel.querySelector('#finalPrompt').value = textBlock ? textBlock.text.trim() : idea;
+      setStatus('promptStatus','Prompt drafted — edit freely before generating.');
+    }catch(e){ console.error(e); setStatus('promptStatus','Could not draft a prompt. Try again.', true); }
+  };
+
+  promptPanel.querySelector('#copyOpenBtn').onclick = async ()=>{
+    const p = promptPanel.querySelector('#finalPrompt').value.trim() || promptPanel.querySelector('#ideaText').value.trim();
+    if(!p){ setStatus('promptStatus','Write or generate a prompt first.', true); return; }
+    try{ await navigator.clipboard.writeText(p); }catch(e){}
+    window.open('https://cloud.higgsfield.ai/', '_blank');
+    setStatus('promptStatus','Prompt copied — paste it into the new Higgsfield tab.');
+  };
+
+  if(client){
+    const savePanel = document.createElement('div'); savePanel.className='panel';
+    savePanel.innerHTML = `
+      <div class="profile-head"><div><h2>Log this for ${esc(client.name)}</h2><div class="sub">Optional — keep a record of what you generated and why</div></div></div>
+      <div class="field"><label>Result image/video URL (optional — paste a link once you've generated and uploaded it somewhere)</label><input type="text" id="resultUrl" placeholder="https://..."></div>
+      <div class="btn-row"><button id="saveGalleryBtn" class="small">Save to gallery</button></div>
+    `;
+    main.appendChild(savePanel);
+    savePanel.querySelector('#saveGalleryBtn').onclick = async ()=>{
+      const p = promptPanel.querySelector('#finalPrompt').value.trim() || promptPanel.querySelector('#ideaText').value.trim();
+      if(!p){ setStatus('promptStatus','Write or generate a prompt first.', true); return; }
+      const url = savePanel.querySelector('#resultUrl').value.trim();
+      if(!state.graphicsGallery[client.id]) state.graphicsGallery[client.id] = [];
+      state.graphicsGallery[client.id].push({ id: uid('g'), date: new Date().toLocaleDateString(), prompt: p, url });
+      await storageSet('graphics:'+client.id, state.graphicsGallery[client.id]);
+      savePanel.querySelector('#resultUrl').value = '';
+      renderGraphicsGallery(document.getElementById('galleryWrap'), client.id);
+      setStatus('promptStatus','Saved to gallery.');
+    };
+  }
+
+  const galleryHead = document.createElement('div'); galleryHead.style.padding='4px 0 10px';
+  galleryHead.innerHTML = `<h2 style="font-family:'Newsreader',serif;font-size:18px;font-weight:600;margin:0;">Saved for ${client?esc(client.name):'this client'}</h2>`;
+  main.appendChild(galleryHead);
+  const galleryWrap = document.createElement('div'); galleryWrap.id='galleryWrap';
+  main.appendChild(galleryWrap);
+  if(client) renderGraphicsGallery(galleryWrap, client.id);
+  else galleryWrap.innerHTML = `<div class="panel loading-row" style="font-style:italic;">Pick a client above to see and save their generated graphics.</div>`;
+}
+
+function renderGraphicsGallery(wrap, clientId){
+  if(!wrap) return;
+  const items = state.graphicsGallery[clientId] || [];
+  if(!items.length){ wrap.innerHTML = `<div class="panel loading-row" style="font-style:italic;">Nothing saved yet for this client.</div>`; return; }
+  const grid = document.createElement('div'); grid.className='posts';
+  [...items].reverse().forEach(g=>{
+    const card = document.createElement('div'); card.className='post-card';
+    card.innerHTML = `
+      ${g.url ? `<img class="result-img" src="${esc(g.url)}" style="margin-top:0;margin-bottom:8px;">` : ''}
+      <div class="uses">${esc(g.date)}</div>
+      <div class="caption" style="font-size:12.5px;">${esc(g.prompt)}</div>
+      <div style="display:flex;gap:8px;"><button class="danger small delGalleryBtn">Delete</button></div>
+    `;
+    card.querySelector('.delGalleryBtn').onclick = ()=>{
+      state.graphicsGallery[clientId] = state.graphicsGallery[clientId].filter(x=>x.id!==g.id);
+      storageSet('graphics:'+clientId, state.graphicsGallery[clientId]);
+      renderGraphicsGallery(wrap, clientId);
+    };
+    grid.appendChild(card);
+  });
+  wrap.innerHTML=''; wrap.appendChild(grid);
+}
+
+/* ---------- CALENDAR (self-contained mini calendar) ---------- */
+const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function getMonthMatrix(year, month){
+  const firstOfMonth = new Date(year, month, 1);
+  const startDow = firstOfMonth.getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+  const cells = [];
+  for(let i=startDow-1; i>=0; i--){
+    const d = daysInPrevMonth - i;
+    const m = month===0 ? 11 : month-1;
+    const y = month===0 ? year-1 : year;
+    cells.push({ dateStr: dateKey(y,m,d), dayNum:d, inMonth:false });
+  }
+  for(let d=1; d<=daysInMonth; d++){
+    cells.push({ dateStr: dateKey(year,month,d), dayNum:d, inMonth:true });
+  }
+  while(cells.length % 7 !== 0 || cells.length < 42){
+    const idx = cells.length - (startDow + daysInMonth);
+    const d = idx + 1;
+    const m = month===11 ? 0 : month+1;
+    const y = month===11 ? year+1 : year;
+    cells.push({ dateStr: dateKey(y,m,d), dayNum:d, inMonth:false });
+    if(cells.length >= 42) break;
+  }
+  const weeks = [];
+  for(let i=0; i<cells.length; i+=7) weeks.push(cells.slice(i,i+7));
+  return weeks;
+}
+function dateKey(y,m,d){
+  const mm = String(m+1).padStart(2,'0');
+  const dd = String(d).padStart(2,'0');
+  return `${y}-${mm}-${dd}`;
+}
+
+function getItemsForDate(dateStr){
+  const items = [];
+  state.myEvents.filter(e=>e.date===dateStr).forEach(e=>{
+    items.push({ kind:'event', type:e.type||'general', title:e.title, time:e.time, notes:e.notes, id:e.id });
+  });
+  state.productions.filter(p=>p.date===dateStr).forEach(p=>{
+    items.push({ kind:'shoot', type:'shoot', title:'Shoot: '+p.name, notes:p.client||'' });
+    if(!p.paymentPaid){
+      const due = addBusinessDays(p.date, 7);
+      if(due===dateStr) items.push({ kind:'payment', type:'payment', title:'Payment due: '+p.name, notes:'' });
+    }
+  });
+  return items;
+}
+
+function renderCalendar(main){
+  main.innerHTML = `<div class="section-head"><h1>Calendar</h1><span class="sub">YOUR OWN SCHEDULE — LOGGED HERE</span></div>`;
+
+  const calPanel = document.createElement('div'); calPanel.className='panel';
+  calPanel.innerHTML = `
+    <div class="cal-header">
+      <h2>${MONTH_NAMES[state.calendarViewMonth]} ${state.calendarViewYear}</h2>
+      <div class="cal-nav-btns">
+        <button class="ghost small" id="calPrevBtn">‹ Prev</button>
+        <button class="ghost small" id="calTodayBtn">Today</button>
+        <button class="ghost small" id="calNextBtn">Next ›</button>
+      </div>
+    </div>
+  `;
+  const grid = document.createElement('div'); grid.className='cal-grid';
+  DOW.forEach(d=>{ const el2=document.createElement('div'); el2.className='cal-dow'; el2.textContent=d; grid.appendChild(el2); });
+  const weeks = getMonthMatrix(state.calendarViewYear, state.calendarViewMonth);
+  const today = todayKeyStr();
+  weeks.flat().forEach(cell=>{
+    const items = getItemsForDate(cell.dateStr);
+    const c = document.createElement('div');
+    c.className = 'cal-cell' + (cell.inMonth?'':' out-month') + (cell.dateStr===today?' is-today':'') + (cell.dateStr===state.calendarSelectedDate?' is-selected':'');
+    const hasEvent = items.some(i=>i.kind==='event');
+    const hasShoot = items.some(i=>i.kind==='shoot');
+    const hasPayment = items.some(i=>i.kind==='payment');
+    c.innerHTML = `<span class="daynum">${cell.dayNum}</span>
+      <div class="dots">
+        ${hasEvent?'<span class="cal-dot event"></span>':''}
+        ${hasShoot?'<span class="cal-dot shoot"></span>':''}
+        ${hasPayment?'<span class="cal-dot payment"></span>':''}
+      </div>`;
+    c.onclick = ()=>{ state.calendarSelectedDate = cell.dateStr; render(); };
+    grid.appendChild(c);
+  });
+  calPanel.appendChild(grid);
+  main.appendChild(calPanel);
+
+  calPanel.querySelector('#calPrevBtn').onclick = ()=>{
+    state.calendarViewMonth--; if(state.calendarViewMonth<0){ state.calendarViewMonth=11; state.calendarViewYear--; }
+    render();
+  };
+  calPanel.querySelector('#calNextBtn').onclick = ()=>{
+    state.calendarViewMonth++; if(state.calendarViewMonth>11){ state.calendarViewMonth=0; state.calendarViewYear++; }
+    render();
+  };
+  calPanel.querySelector('#calTodayBtn').onclick = ()=>{
+    const now = new Date();
+    state.calendarViewYear = now.getFullYear(); state.calendarViewMonth = now.getMonth();
+    state.calendarSelectedDate = todayKeyStr();
+    render();
+  };
+
+  const dayPanel = document.createElement('div'); dayPanel.className='panel';
+  const selDate = state.calendarSelectedDate || today;
+  const selLabel = new Date(selDate+'T00:00:00').toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'});
+  dayPanel.innerHTML = `<div class="profile-head"><div><h2>${selLabel}</h2><div class="sub">${selDate===today?'Today':''}</div></div><button id="addEventBtn">+ Add event</button></div>`;
+  const dayEventsWrap = document.createElement('div'); dayEventsWrap.className='day-events';
+  dayPanel.appendChild(dayEventsWrap);
+  main.appendChild(dayPanel);
+  renderDayEvents(dayEventsWrap, selDate);
+
+  dayPanel.querySelector('#addEventBtn').onclick = ()=> openEventForm(selDate, dayPanel, dayEventsWrap);
+}
+
+function renderDayEvents(wrap, dateStr){
+  const items = getItemsForDate(dateStr);
+  if(!items.length){
+    wrap.innerHTML = `<div class="loading-row" style="font-style:italic;">Nothing logged for this day.</div>`;
+    return;
+  }
+  wrap.innerHTML = '';
+  items.forEach(it=>{
+    const row = document.createElement('div'); row.className='day-event-row';
+    row.innerHTML = `
+      <div class="de-title"><span class="type-tag ${it.type}">${esc(it.type)}</span>${esc(it.title)}${it.time?' — '+esc(it.time):''}</div>
+      ${it.notes?`<div class="de-notes">${esc(it.notes)}</div>`:''}
+      ${it.kind==='event' ? '<button class="danger small" style="margin-top:6px;">Delete</button>' : ''}
+    `;
+    if(it.kind==='event'){
+      row.querySelector('button').onclick = ()=>{
+        state.myEvents = state.myEvents.filter(e=>e.id!==it.id);
+        storageSet('myEvents', state.myEvents);
+        renderDayEvents(wrap, dateStr);
+        render();
+      };
+    }
+    wrap.appendChild(row);
+  });
+}
+
+function openEventForm(dateStr, dayPanel, dayEventsWrap){
+  const formPanel = document.createElement('div'); formPanel.className='panel'; formPanel.style.margin='0 0 14px';
+  formPanel.innerHTML = `
+    <div class="field"><label>Title</label><input type="text" id="evTitle" placeholder="e.g. Call with Airo Brands"></div>
+    <div class="grid-2">
+      <div class="field"><label>Time (optional)</label><input type="text" id="evTime" placeholder="e.g. 2:00 PM"></div>
+      <div class="field"><label>Type</label>
+        <select id="evType">
+          <option value="general">General</option>
+          <option value="call">Client Call</option>
+          <option value="shoot">Shoot</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Notes (optional)</label><textarea id="evNotes"></textarea></div>
+    <div class="btn-row"><button id="saveEvBtn">Save</button><button class="ghost" id="cancelEvBtn">Cancel</button></div>
+  `;
+  dayPanel.insertBefore(formPanel, dayEventsWrap);
+  formPanel.querySelector('#cancelEvBtn').onclick = ()=> formPanel.remove();
+  formPanel.querySelector('#saveEvBtn').onclick = async ()=>{
+    const title = formPanel.querySelector('#evTitle').value.trim();
+    if(!title){ alert('Give it a title first.'); return; }
+    const ev = {
+      id: uid('ev'), date: dateStr,
+      time: formPanel.querySelector('#evTime').value.trim(),
+      type: formPanel.querySelector('#evType').value,
+      notes: formPanel.querySelector('#evNotes').value.trim(),
+      title
+    };
+    state.myEvents.push(ev);
+    await storageSet('myEvents', state.myEvents);
+    formPanel.remove();
+    render();
+  };
+}
+
+
+/* ---------- shared helpers ---------- */
+function el(tag, cls, text){ const e=document.createElement(tag); e.className=cls; e.textContent=text; return e; }
+
+function showConfirmModal(message){
+  return new Promise((resolve)=>{
+    const overlay = document.createElement('div'); overlay.className='modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal-box" style="max-width:360px;">
+        <div class="mbody">
+          <div style="font-size:14px;line-height:1.5;margin-bottom:16px;">${esc(message)}</div>
+          <div class="btn-row" style="padding:0;">
+            <button class="danger small" id="confirmYesBtn">Delete</button>
+            <button class="ghost small" id="confirmNoBtn">Cancel</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    const finish = (result)=>{ overlay.remove(); resolve(result); };
+    overlay.querySelector('#confirmYesBtn').onclick = ()=> finish(true);
+    overlay.querySelector('#confirmNoBtn').onclick = ()=> finish(false);
+    overlay.onclick = (e)=>{ if(e.target===overlay) finish(false); };
+  });
+}
+
+async function callClaude(systemPrompt, userPrompt, maxTokens){
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ model:"claude-sonnet-4-6", max_tokens: maxTokens||1000, system: systemPrompt, messages:[{role:"user", content:userPrompt}] })
+  });
+  return await response.json();
+}
+function parseJsonFromClaude(data){
+  const textBlock = (data.content||[]).find(b=>b.type==='text');
+  if(!textBlock) throw new Error('No text response');
+  let clean = textBlock.text.trim().replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim();
+  return JSON.parse(clean);
+}
+
+(async function init(){
+  await loadAll();
+  if(state.activeClientId) await loadClientExtras(state.activeClientId);
+  render();
+})();
+</script>
+</body>
+</html>
