@@ -254,6 +254,14 @@
   .modal-close{ position:absolute; top:10px; right:10px; background:var(--ink); color:var(--paper); border:none; width:28px; height:28px; cursor:pointer; font-size:15px; line-height:1; }
   .modal-box-wrap{ position:relative; }
   input[type=file]{ font-family:'IBM Plex Sans', sans-serif; font-size:12.5px; }
+
+  /* general operations */
+  .staff-name-input{ font-family:'Newsreader', serif; font-weight:600; font-size:19px; border:none; background:transparent; padding:2px 0; width:auto; flex:1; }
+  .staff-name-input:focus{ outline:none; border-bottom:1px solid var(--teal); }
+  .bullet-row{ display:flex; align-items:flex-start; gap:8px; padding:8px 20px; border-bottom:1px solid var(--line); }
+  .bullet-row:last-child{ border-bottom:none; }
+  .bullet-row .bullet-dot{ color:var(--teal); font-size:14px; line-height:1.5; flex-shrink:0; }
+  .bullet-row .bullet-text{ flex:1; font-size:13.5px; line-height:1.5; white-space:pre-wrap; }
 </style>
 </head>
 <body>
@@ -275,6 +283,7 @@ const SECTIONS = [
   {id:'clients', label:'Clients'},
   {id:'calls', label:'Client Calls'},
   {id:'casting', label:'Casting'},
+  {id:'generalops', label:'General Operations'},
 ];
 const RELEVANT_KEYWORDS = /shoot|cast|casting|pre-?production|pre-?pro|production|call\b/i;
 const HIGGSFIELD_SOFTWARE = [
@@ -335,6 +344,8 @@ let state = {
   editingProduction: false,
   tasks: [],
   taskFilter: 'open',
+  staffMembers: [],
+  opsNotes: [],
   higgsfieldKey: '',
   higgsfieldSecret: '',
   myEvents: [],
@@ -366,6 +377,8 @@ async function loadAll(){
   state.clients = (await storageGet('clients')) || [];
   state.productions = (await storageGet('productions')) || [];
   state.tasks = (await storageGet('tasks')) || [];
+  state.staffMembers = (await storageGet('staffMembers')) || [];
+  state.opsNotes = (await storageGet('opsNotes')) || [];
   state.dailyResponsibilities = (await storageGet('dailyResponsibilities')) || [];
   state.todayKey = todayKeyStr();
   state.todayCompletions = (await storageGet('completions:'+state.todayKey)) || [];
@@ -453,7 +466,7 @@ function renderNav(){
 function renderMain(){
   const main = document.getElementById('main');
   main.innerHTML = '';
-  const renderers = { home:renderHome, clients:renderClients, content:renderContent, calls:renderCalls, casting:renderCasting, graphics:renderGraphics, calendar:renderCalendar };
+  const renderers = { home:renderHome, clients:renderClients, content:renderContent, calls:renderCalls, casting:renderCasting, graphics:renderGraphics, calendar:renderCalendar, generalops:renderGeneralOps };
   renderers[state.section](main);
 }
 
@@ -1250,6 +1263,129 @@ async function generateShortlist(prod, wrap){
     wrap.innerHTML = `<div class="panel loading-row" style="font-style:italic;">Something went wrong. Try again.</div>`;
     setStatus('shortlistStatus','Something went wrong.', true);
   }
+}
+
+/* ---------- GENERAL OPERATIONS ---------- */
+function renderGeneralOps(main){
+  main.innerHTML = `<div class="section-head"><h1>General Operations</h1><span class="sub">TEAM &amp; OPS NOTES</span></div>`;
+  main.appendChild(buildStaffSection());
+  main.appendChild(buildOpsNotesPanel());
+}
+
+function buildStaffSection(){
+  const wrap = document.createElement('div');
+  const head = document.createElement('div'); head.className='profile-head'; head.style.background='transparent'; head.style.border='none'; head.style.padding='0 0 10px';
+  head.innerHTML = `<div><h2 style="font-size:18px;">Team</h2><div class="sub">${state.staffMembers.length} team member${state.staffMembers.length===1?'':'s'}</div></div><button id="addStaffBtn">+ Add team member</button>`;
+  wrap.appendChild(head);
+  head.querySelector('#addStaffBtn').onclick = ()=>{
+    state.staffMembers.push({ id: uid('staff'), name:'', bullets:[] });
+    storageSet('staffMembers', state.staffMembers); render();
+  };
+  if(!state.staffMembers.length){
+    wrap.appendChild(el('div','panel empty-state','No team members yet — click "+ Add team member" to start.'));
+    return wrap;
+  }
+  state.staffMembers.forEach(s=> wrap.appendChild(buildStaffCard(s)));
+  return wrap;
+}
+
+function buildStaffCard(s){
+  const card = document.createElement('div'); card.className='panel';
+  card.innerHTML = `
+    <div class="profile-head">
+      <input type="text" class="staff-name-input" value="${esc(s.name)}" placeholder="Team member name">
+      <button class="danger small delStaffBtn">Remove</button>
+    </div>
+    <div class="bulletList"></div>
+    <div class="field"><input type="text" class="newBulletInput" placeholder="Add a note or task for this person..."></div>
+    <div class="btn-row"><button class="small addBulletBtn">Add</button></div>
+  `;
+  const nameInput = card.querySelector('.staff-name-input');
+  nameInput.onchange = ()=>{ s.name = nameInput.value.trim(); storageSet('staffMembers', state.staffMembers); };
+  card.querySelector('.delStaffBtn').onclick = async ()=>{
+    if(!(await showConfirmModal(`Remove ${s.name||'this team member'}? This deletes their whole list.`))) return;
+    state.staffMembers = state.staffMembers.filter(x=>x.id!==s.id);
+    storageSet('staffMembers', state.staffMembers); render();
+  };
+  const list = card.querySelector('.bulletList');
+  function drawBullets(){
+    list.innerHTML = '';
+    if(!s.bullets.length){ list.innerHTML = `<div class="loading-row" style="font-style:italic;">Nothing added yet.</div>`; return; }
+    s.bullets.forEach(b=>{
+      const row = document.createElement('div'); row.className='bullet-row';
+      row.innerHTML = `<span class="bullet-dot">•</span><span class="bullet-text">${esc(b.text)}</span><button class="danger small">×</button>`;
+      row.querySelector('button').onclick = ()=>{
+        s.bullets = s.bullets.filter(x=>x.id!==b.id);
+        storageSet('staffMembers', state.staffMembers); drawBullets();
+      };
+      list.appendChild(row);
+    });
+  }
+  drawBullets();
+  const addBullet = ()=>{
+    const input = card.querySelector('.newBulletInput');
+    const txt = input.value.trim();
+    if(!txt) return;
+    s.bullets.push({ id: uid('b'), text: txt });
+    storageSet('staffMembers', state.staffMembers);
+    input.value = '';
+    drawBullets();
+    input.focus();
+  };
+  card.querySelector('.addBulletBtn').onclick = addBullet;
+  card.querySelector('.newBulletInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addBullet(); } });
+  return card;
+}
+
+function buildOpsNotesPanel(){
+  const wrap = document.createElement('div'); wrap.className='panel';
+  wrap.innerHTML = `
+    <div class="profile-head">
+      <div><h2>Operations notes</h2><div class="sub">General notes — anything worth tracking that isn't tied to a client</div></div>
+      <button id="addOpsNoteBtn">+ Add</button>
+    </div>
+    <div id="opsNotesList"></div>
+  `;
+  const list = wrap.querySelector('#opsNotesList');
+  function draw(){
+    list.innerHTML = '';
+    if(!state.opsNotes.length){ list.innerHTML = `<div class="loading-row" style="font-style:italic;">Nothing added yet.</div>`; return; }
+    [...state.opsNotes].reverse().forEach(n=>{
+      const entry = document.createElement('div'); entry.className='call-entry';
+      entry.innerHTML = `
+        <div class="call-date">${esc(n.date)}</div>
+        <h4 style="margin-top:2px;">${esc(n.title)}</h4>
+        <div style="font-size:13.5px;line-height:1.5;white-space:pre-wrap;">${esc(n.content)}</div>
+        <div style="margin-top:10px;display:flex;gap:8px;"><button class="danger small delOpsNoteBtn">Delete</button></div>
+      `;
+      entry.querySelector('.delOpsNoteBtn').onclick = ()=>{
+        state.opsNotes = state.opsNotes.filter(x=>x.id!==n.id);
+        storageSet('opsNotes', state.opsNotes); draw();
+      };
+      list.appendChild(entry);
+    });
+  }
+  draw();
+  wrap.querySelector('#addOpsNoteBtn').onclick = ()=>{
+    const formPanel = document.createElement('div'); formPanel.className='panel'; formPanel.style.marginTop='-6px'; formPanel.style.marginBottom='14px';
+    formPanel.innerHTML = `
+      <div class="field"><label>Title</label><input type="text" id="onTitle" placeholder="e.g. New vendor contact, Office lease renewal"></div>
+      <div class="field"><label>Details</label><textarea id="onContent" style="min-height:90px;"></textarea></div>
+      <div class="btn-row"><button id="saveOpsNoteBtn">Save</button><button class="ghost" id="cancelOpsNoteBtn">Cancel</button></div>
+    `;
+    wrap.insertBefore(formPanel, list);
+    formPanel.querySelector('#cancelOpsNoteBtn').onclick = ()=> formPanel.remove();
+    formPanel.querySelector('#saveOpsNoteBtn').onclick = ()=>{
+      const title = formPanel.querySelector('#onTitle').value.trim();
+      const content = formPanel.querySelector('#onContent').value.trim();
+      if(!title){ alert('Give it a title.'); return; }
+      state.opsNotes.push({ id: uid('on'), date: new Date().toLocaleDateString(), title, content });
+      storageSet('opsNotes', state.opsNotes);
+      formPanel.remove();
+      draw();
+    };
+  };
+  return wrap;
 }
 
 /* ---------- GRAPHICS ---------- */
