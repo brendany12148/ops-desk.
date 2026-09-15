@@ -486,7 +486,7 @@ function renderHome(main){
 
   const checklistPanel = document.createElement('div'); checklistPanel.className='panel';
   checklistPanel.innerHTML = `
-    <div class="profile-head"><div><h2>Checklist</h2><div class="sub">Ongoing list — check items off as you go</div></div><button id="manageRespBtn" class="ghost small">Add Task</button></div>
+    <div class="profile-head"><div><h2>Checklist</h2><div class="sub">Ongoing list — check an item off and it clears</div></div><button id="manageRespBtn" class="ghost small">Add Task</button></div>
     <div id="dailyChecklist"></div>
   `;
   main.appendChild(checklistPanel);
@@ -580,16 +580,18 @@ function renderDailyChecklist(container){
   }
   container.innerHTML = '';
   state.dailyResponsibilities.forEach(r=>{
-    const done = !!r.done;
-    const row = document.createElement('div'); row.className='task-row'+(done?' done':'');
-    row.innerHTML = `<input type="checkbox" ${done?'checked':''}><span class="task-text">${esc(r.text)}</span>`;
+    const row = document.createElement('div'); row.className='task-row';
+    row.innerHTML = `<input type="checkbox"><span class="task-text">${esc(r.text)}</span>`;
     row.querySelector('input').onchange = (e)=>{
-      r.done = e.target.checked;
-      storageSet('dailyResponsibilities', state.dailyResponsibilities);
-      row.classList.add('just-checked');
-      const nowComplete = state.dailyResponsibilities.length > 0 && state.dailyResponsibilities.every(x=>x.done);
-      if(e.target.checked){ spawnConfetti(row, nowComplete ? 'big' : 'small', CHECKLIST_CONFETTI); }
-      setTimeout(render, nowComplete ? 260 : 160);
+      if(!e.target.checked) return;
+      row.classList.add('done','just-checked');
+      const nowComplete = state.dailyResponsibilities.length === 1;
+      spawnConfetti(row, nowComplete ? 'big' : 'small', CHECKLIST_CONFETTI);
+      setTimeout(()=>{
+        state.dailyResponsibilities = state.dailyResponsibilities.filter(x=>x.id!==r.id);
+        storageSet('dailyResponsibilities', state.dailyResponsibilities);
+        render();
+      }, nowComplete ? 260 : 220);
     };
     container.appendChild(row);
   });
@@ -622,7 +624,7 @@ function openResponsibilityManager(panel){
   formPanel.querySelector('#addRespBtn').onclick = ()=>{
     const txt = formPanel.querySelector('#newRespText').value.trim();
     if(!txt) return;
-    state.dailyResponsibilities.push({id:uid('r'), text:txt, done:false});
+    state.dailyResponsibilities.push({id:uid('r'), text:txt});
     storageSet('dailyResponsibilities', state.dailyResponsibilities);
     formPanel.querySelector('#newRespText').value='';
     renderList();
